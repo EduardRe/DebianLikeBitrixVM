@@ -1,0 +1,98 @@
+---
+# tasks file for get_lets_encrypt_certificate
+- name: Installing of Certbot
+  apt:
+    name: certbot
+    state: latest
+
+- name: Getting SSL certificate
+  shell: |
+        certbot certonly --webroot --webroot-path {{ path_site }} --non-interactive --agree-tos --email {{ email }} -d {{ domain }}
+  args:
+    creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+  ignore_errors: yes
+
+- name: Creating cron task Certbot Renewal SSL Certificate
+  cron:
+    name: "Certbot Renewal"
+    job: "certbot renew --non-interactive --post-hook 'systemctl reload nginx'"
+    special_time: "weekly"
+    user: "root"
+  ignore_errors: yes
+
+- name: Searching domain directory
+  find:
+    paths: "{{ letsencrypt_live_dir }}"
+    file_type: directory
+    patterns: "{{ domain }}*"
+  register: found_directory_domain
+
+- name: Saving founded directory in variable
+  set_fact:
+    cert_full_domain_directory: "{{ found_directory_domain.files | map(attribute='path') | list | first }}"
+  ignore_errors: yes
+
+- name: Checking is default site
+  set_fact:
+    nginx_config: "{{ domain }}.conf"
+  when: default_full_path_site != path_site
+
+- name: Checking Nginx configuration file
+  stat:
+    path: "{{ path_nginx_sites_conf }}/{{ nginx_config }}"
+  register: real_nginx_config_file
+
+- name: Changing Nginx configuration
+  block:
+    - name: Setting variables
+      set_fact:
+        ssl_cert_full_path: "{{ cert_full_domain_directory }}/{{ file_fullchain }}"
+        ssl_cert_key_full_path: "{{ cert_full_domain_directory }}/{{ file_privkey }}"
+
+    - name: loading Nginx configuration
+      slurp:
+        src: "{{ path_nginx_sites_conf }}/{{ nginx_config }}"
+      register: nginx_conf_data
+
+    - name: Processing Nginx configuration
+      set_fact:
+        new_nginx_conf: |
+          {%- set start = {'word': false} -%}
+          {% for line in nginx_conf_data.content | b64decode | split('\n') %}
+            {%- set stripped_line = line.strip() -%}
+            {%- if stripped_line == "### START PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###" -%}
+              {%- if start.update({'word': true}) -%} {% endif -%}
+            {%- elif stripped_line == "### END PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###" -%}
+              {%- if start.update({'word': false}) -%} {% endif -%}
+            {%- endif -%}
+            {%- if start.word -%}
+               {%- if 'include ' in line -%}
+                  {%- set line = line.replace('#', '') -%}
+                  {%- set line = '#' + line -%}
+                {%- endif -%}
+                {%- if 'ssl_certificate ' in line -%}
+                  {%- set line = line.replace(line.split('ssl_certificate')[1], ' ' + ssl_cert_full_path + ';') -%}
+                  {%- set line = line.replace('#', '') -%}
+                {%- elif 'ssl_certificate_key ' in line -%}
+                  {%- set line = line.replace(line.split('ssl_certificate_key')[1], ' ' + ssl_cert_key_full_path + ';') -%}
+                  {%- set line = line.replace('#', '') -%}
+                {%- endif -%}
+            {%- endif -%}
+            {{ line }}
+          {% endfor %}
+
+    - name: Saving new Nginx configuration
+      copy:
+        content: "{{ new_nginx_conf }}"
+        dest: "{{ path_nginx_sites_conf }}/{{ nginx_config }}"
+
+    - name: Restarting Nginx
+      systemd:
+        name: "{{ service_nginx_name }}"
+        state: restarted
+
+  when: cert_full_domain_directory != "" and real_nginx_config_file.stat.exists
+
+- name: Creating of redirection HTTP to HTTPS enabled for the site {{ domain }}
+  include_tasks: "tasks/redirect_http_to_https.yaml"
+  when: redirect_to_https == "Y"

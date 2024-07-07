@@ -1,0 +1,11 @@
+---
+- name: Geting SSL Certificate Let`s Encrypt for the site {{ domain }}
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  roles:
+    - role: get_lets_encrypt_certificate
+      vars:
+        domain: "{{ domain }}"
+        email: "{{ ssl_lets_encrypt_email }}"

@@ -1,0 +1,88 @@
+<VirtualHost *:8090>
+ServerName  {{ domain }}
+ServerAlias www.{{ domain }}
+ServerAdmin webmaster@localhost
+
+DocumentRoot  {{ path_sites }}/{{ domain }}
+
+ErrorLog ${APACHE_LOG_DIR}/error_log
+LogLevel warn
+   CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+<IfModule mod_rewrite.c>
+	#Nginx should have "proxy_set_header HTTPS YES;" in location
+	RewriteEngine On
+	RewriteCond %{HTTP:HTTPS} =YES
+	RewriteRule .* - [E=HTTPS:on,L]
+</IfModule>
+
+<Directory />
+	Options FollowSymLinks
+	AllowOverride None
+</Directory>
+
+<DirectoryMatch .*\.svn/.*>
+       Require all denied
+</DirectoryMatch>
+
+<DirectoryMatch .*\.git/.*>
+	 Require all denied
+</DirectoryMatch>
+
+<DirectoryMatch .*\.hg/.*>
+	 Require all denied
+</DirectoryMatch>
+
+<Directory {{ path_sites }}/{{ domain }}>
+	Options Indexes FollowSymLinks MultiViews
+	AllowOverride All
+	DirectoryIndex index.php index.html index.htm
+
+       Require all granted
+
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/cache>
+		AllowOverride none
+        Require all denied
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/managed_cache>
+		AllowOverride none
+        Require all denied
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/local_cache>
+		AllowOverride none
+        Require all denied
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/stack_cache>
+		AllowOverride none
+        Require all denied
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/upload>
+		AllowOverride none
+		AddType text/plain php,php3,php4,php5,php6,phtml,pl,asp,aspx,cgi,dll,exe,ico,shtm,shtml,fcg,fcgi,fpl,asmx,pht
+		php_value engine off
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/upload/support/not_image>
+		AllowOverride none
+        Require all denied
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/images>
+		AllowOverride none
+		AddType text/plain php,php3,php4,php5,php6,phtml,pl,asp,aspx,cgi,dll,exe,ico,shtm,shtml,fcg,fcgi,fpl,asmx,pht
+		php_value engine off
+	</Directory>
+
+	<Directory {{ path_sites }}/{{ domain }}/bitrix/tmp>
+		AllowOverride none
+		AddType text/plain php,php3,php4,php5,php6,phtml,pl,asp,aspx,cgi,dll,exe,ico,shtm,shtml,fcg,fcgi,fpl,asmx,pht
+		php_value engine off
+	</Directory>
+
+</VirtualHost>
