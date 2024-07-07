@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New site: {{ domain }}</title>
+    <style>
+        div.center {
+            width: 80%;
+            height: 80%;
+
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+
+            margin: auto;
+
+            text-align: center;
+        }
+    </style>
+</head>
+<body style="background: #ccc">
+<div class="center">
+    <h1>New site: {{ domain }}</h1>
+
+    {% for item in file_names_download %}
+        <h3><a href="/{{ item }}">{{ item }}</a></h3>
+    {% endfor %}
+</div>
+</body>
+</html>

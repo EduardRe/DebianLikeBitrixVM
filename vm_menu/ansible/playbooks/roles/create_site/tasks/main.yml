@@ -1,0 +1,159 @@
+---
+# tasks file for create_site
+- name: Create directory of the site {{ domain }}
+  file:
+    state: directory
+    path: "{{ path_sites }}/{{ domain }}"
+    owner: "{{ user_server_sites }}"
+    group: "{{ group_user_server_sites }}"
+    mode: "{{ permissions_sites_dirs }}"
+
+############## LINK MODE ##############
+- name: "Mode: link"
+  block:
+
+    - name: Checking of path existence resources taken from settings
+      stat:
+        path: "{{ path_site_from_links }}/{{ item }}"
+      register: link_source
+      with_items: "{{ site_links_resources.split(',') }}"
+
+    - name: Link creating
+      file:
+        src: "{{ path_site_from_links }}/{{ item.item }}"
+        dest: "{{ path_sites }}/{{ domain }}/{{ item.item }}"
+        state: link
+      when: item.stat.exists
+      with_items: "{{ link_source.results }}"
+
+    - name: Adding index.php file for a site
+      template:
+        src: "site_link_tpl/index.j2"
+        dest: "{{ path_sites }}/{{ domain }}/index.php"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+  when: mode == 'link'
+
+############## FULL MODE ##############
+- name: "Mode: full"
+  block:
+
+    - name: Creating array of urls
+      set_fact:
+        urls: "{{ download_bitrix_install_files_new_site.split(',') }}"
+      no_log: true
+
+    - name: Downloading Bitrix scripts
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ path_sites }}/{{ domain }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+        timeout: "{{ timeout_download_bitrix_install_files_new_site }}"
+      ignore_errors: yes
+      with_items: "{{ urls }}"
+
+    - name: Creating of downloaded file names array
+      set_fact:
+        file_names_download: "{{ urls | map('basename') | list }}"
+      no_log: true
+
+    - name: Generating index.html using links of downloaded files
+      template:
+        dest: "{{ path_sites }}/{{ domain }}/index.html"
+        src: "site_full_tpl/index.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+      no_log: true
+
+    - name: Installing of python3-pymysql
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Creating database
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+
+    - name: Creating database user
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        state: present
+
+    - name: Creating directory bitrix/php_interface
+      file:
+        state: directory
+        path: "{{ path_sites }}/{{ domain }}/bitrix/php_interface"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_dirs }}"
+
+    - name: Generating dbconn.php file
+      template:
+        dest: "{{ path_sites }}/{{ domain }}/bitrix/php_interface/dbconn.php"
+        src: "site_full_tpl/dbconn.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+    - name: Generating .settings.php file
+      template:
+        dest: "{{ path_sites }}/{{ domain }}/bitrix/.settings.php"
+        src: "site_full_tpl/.settings.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+  when: mode == 'full'
+
+############## SITE FILES ##############
+- name: Adding .htaccess file
+  copy:
+    src: "site_files/.htaccess"
+    dest: "{{ path_sites }}/{{ domain }}"
+    owner: "{{ user_server_sites }}"
+    group: "{{ group_user_server_sites }}"
+    mode: "{{ permissions_sites_files }}"
+
+############## NGINX ##############
+- name: Adding Nginx configuration file
+  template:
+    dest: "{{ path_nginx_sites_conf }}/{{ domain }}.conf"
+    src: "nginx_conf/site.j2"
+
+- name: Creating symbol link (site_enable) for Nginx configuration file
+  file:
+    src: "{{ path_nginx_sites_conf }}/{{ domain }}.conf"
+    dest: "{{ path_nginx_sites_enabled }}/{{ domain }}.conf"
+    state: link
+
+- name: Restarting Nginx
+  systemd:
+    name: "{{ service_nginx_name }}"
+    state: restarted
+
+
+############## APACHE ##############
+- name: Adding Apache configuration file
+  template:
+    dest: "{{ path_apache_sites_conf }}/{{ domain }}.conf"
+    src: "apache_conf/site.j2"
+
+- name: Creating symbol link (site_enable) for Apache configuration file
+  file:
+    src: "{{ path_apache_sites_conf }}/{{ domain }}.conf"
+    dest: "{{ path_apache_sites_enabled }}/{{ domain }}.conf"
+    state: link
+
+- name: Restarting Apache
+  systemd:
+    name: "{{ service_apache_name }}"
+    state: restarted
+

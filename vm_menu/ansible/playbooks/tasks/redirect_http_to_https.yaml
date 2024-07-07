@@ -1,0 +1,26 @@
+---
+- name: Setting var
+  set_fact:
+    file_htsecure: ".htsecure"
+  no_log: true
+
+- name: Checking file existence
+  stat:
+    path: "{{ path_site }}/{{ file_htsecure }}"
+  register: file_stat
+  no_log: true
+
+- name: Deliting file if exists
+  file:
+    path: "{{ path_site }}/{{ file_htsecure }}"
+    state: absent
+  when: file_stat.stat.exists
+
+- name: "Creating file if doesn`t exist"
+  file:
+    path: "{{ path_site }}/{{ file_htsecure }}"
+    state: touch
+    owner: "{{ user_server_sites }}"
+    group: "{{ group_user_server_sites }}"
+    mode: "{{ permissions_sites_files }}"
+  when: not file_stat.stat.exists

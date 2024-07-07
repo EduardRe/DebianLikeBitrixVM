@@ -1,0 +1,218 @@
+---
+- name: Installing of a new full environment
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Creating array for deleting files
+      set_fact:
+        dell_files: "{{ delete_files.split(',') }}"
+      no_log: true
+
+    - name: Deleting files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ dell_files }}"
+
+    - name: Creating array with urls
+      set_fact:
+        urls: "{{ download_bitrix_install_files_new_site.split(',') }}"
+      no_log: true
+
+    - name: Downloading Bitrix scripts
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ document_root }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+        timeout: "{{ timeout_download_bitrix_install_files_new_site }}"
+      ignore_errors: yes
+      with_items: "{{ urls }}"
+
+    - name: Creating of downloaded file names array
+      set_fact:
+        file_names_download: "{{ urls | map('basename') | list }}"
+      no_log: true
+
+    - name: Generating index.html using links of downloaded files
+      template:
+        dest: "{{ document_root }}/index.html"
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/index.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+      no_log: true
+
+    - name: Creating directory bitrix/php_interface
+      file:
+        state: directory
+        path: "{{ document_root }}/bitrix/php_interface"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_dirs }}"
+
+    - name: Generating dbconn.php file
+      template:
+        dest: "{{ document_root }}/bitrix/php_interface/dbconn.php"
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/dbconn.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+    - name: Generating .settings.php file
+      template:
+        dest: "{{ document_root }}/bitrix/.settings.php"
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/.settings.j2"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+    ############## SITE FILES ##############
+    - name: Adding .htaccess file
+      copy:
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/files/site_files/.htaccess"
+        dest: "{{ document_root }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_files }}"
+
+    ############## NGINX ##############
+    - name: Adding Nginx configuration file
+      template:
+        dest: "{{ path_nginx_sites_conf }}/default.conf"
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/nginx_conf/default.j2"
+
+    - name: Creating symbol link (site_enable) for Nginx configuration file
+      file:
+        src: "{{ path_nginx_sites_conf }}/default.conf"
+        dest: "{{ path_nginx_sites_enabled }}/default.conf"
+        state: link
+
+# Fix bug, dont start NGINX after reboot system
+    - name: Ensuring 'Requires=apache2.service' is in [Unit]
+      lineinfile:
+        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+        regexp: '^Requires='
+        line: 'Requires=apache2.service'
+        insertafter: '\[Unit\]'
+        state: present
+
+    - name: Ensuring 'After' contains 'apache2.service'
+      block:
+        - name: Check if 'After' exists
+          command: grep '^After=' "/lib/systemd/system/{{ service_nginx_name }}.service"
+          register: after_line
+          ignore_errors: yes
+
+        - name: "Adding 'After' line if doesn`t present"
+          lineinfile:
+            path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+            line: 'After=apache2.service'
+          when: after_line.rc != 0
+
+        - name: Ensuring 'After' contains 'apache2.service'
+          lineinfile:
+            path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+            regexp: '^After='
+            line: "{{ 'After=' + (after_line.stdout.split('=')[1] + ' apache2.service').split() | unique | join(' ') }}"
+          when: after_line.rc == 0
+
+    - name: Ensuring 'Restart=on-failure' is in [Service]
+      lineinfile:
+        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+        regexp: '^Restart='
+        line: 'Restart=on-failure'
+        insertafter: '\[Service\]'
+        state: present
+
+    - name: Ensuring 'RestartSec=1s' is in [Service]
+      lineinfile:
+        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+        regexp: '^RestartSec='
+        line: 'RestartSec=1s'
+        insertafter: '\[Service\]'
+        state: present
+
+    - name: Ensuring 'StartLimitIntervalSec=500' is in [Service]
+      lineinfile:
+        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+        regexp: '^StartLimitIntervalSec='
+        line: 'StartLimitIntervalSec=500'
+        insertafter: '\[Service\]'
+        state: present
+
+    - name: Ensuring 'StartLimitBurst=50' is in [Service]
+      lineinfile:
+        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
+        regexp: '^StartLimitBurst='
+        line: 'StartLimitBurst=50'
+        insertafter: '\[Service\]'
+        state: present
+
+# END fix bug, dont start NGINX after reboot system
+
+    - name: Restarting Nginx
+      systemd:
+        name: "{{ service_nginx_name }}"
+        state: restarted
+
+
+    ############## APACHE ##############
+    - name: Adding Apache configuration file
+      template:
+        dest: "{{ path_apache_sites_conf }}/default.conf"
+        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/apache_conf/default.j2"
+
+    - name: Creating symbol link (site_enable) for Apache configuration file
+      file:
+        src: "{{ path_apache_sites_conf }}/default.conf"
+        dest: "{{ path_apache_sites_enabled }}/default.conf"
+        state: link
+
+    - name: Restarting Apache
+      systemd:
+        name: "{{ service_apache_name }}"
+        state: restarted
+
+    ############## Show IP address ##############
+    - name: Creating script
+      copy:
+        dest: /usr/local/bin/display-ip.sh
+        content: |
+          #!/bin/bash
+          source /root/vm_menu/bash_scripts/utils.sh
+          get_ip_current_server
+          if [ -n "$CURRENT_SERVER_IP" ]; then
+            version=$(cat /etc/issue.net)
+            echo "$version" > /etc/issue
+            echo -e "\n IP address: ${CURRENT_SERVER_IP}\n" >> /etc/issue
+          fi
+        mode: '0755'
+
+    - name: Creating systemd service for IP showing
+      copy:
+        dest: /etc/systemd/system/display-ip.service
+        content: |
+          [Unit]
+          Description=Show IP address
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/display-ip.sh
+          StandardOutput=console
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Enabling and starting service
+      systemd:
+        name: display-ip
+        enabled: yes
+        state: started
+
+

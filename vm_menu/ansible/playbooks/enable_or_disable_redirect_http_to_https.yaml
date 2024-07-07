@@ -1,0 +1,9 @@
+---
+- name: Creating of redirection HTTP to HTTPS {{ action }} for the site {{ domain }}
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tasks:
+    - include_tasks: "tasks/redirect_http_to_https.yaml"
+

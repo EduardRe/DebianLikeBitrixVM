@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# Install full environment
+# MASTER branch
+
+# use curl
+# bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)
+
+# use wget
+# bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)
+
+cat > /root/temp_install_full_environment.sh <<\END
+#!/bin/bash
+
+BRANCH="master"
+SETUP_BITRIX_DEBIAN_URL="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/$BRANCH/repositories/bitrix-gt/custom_from_install_full_environment_bitrix_setup_vanilla.sh"
+REPO_URL="https://github.com/EduardRe/DebianLikeBitrixVM.git"
+
+DB_NAME="bitrix"
+DB_USER="bitrix"
+DOCUMENT_ROOT="/var/www/html/bx-site"
+
+DIR_NAME_MENU="vm_menu"
+DEST_DIR_MENU="/root"
+
+FULL_PATH_MENU_FILE="$DEST_DIR_MENU/$DIR_NAME_MENU/menu.sh"
+
+apt update -y
+apt upgrade -y
+apt install -y wget curl ansible git
+
+bash -c "$(curl -sL $SETUP_BITRIX_DEBIAN_URL)"
+
+source /root/run.sh
+
+set +x
+
+# set mysql root password
+root_pass=$(pwgen 24 1)
+
+mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${root_pass}');FLUSH PRIVILEGES;"
+
+cat > /root/.my.cnf <<CONFIG_MYSQL_ROOT_MY_CNF
+[client]
+user=root
+password="${root_pass}"
+# socket=/var/lib/mysqld/mysqld.sock
+
+CONFIG_MYSQL_ROOT_MY_CNF
+
+# Clone directory vm_menu with repositories
+git clone --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
+cd "$DEST_DIR_MENU/DebianLikeBitrixVM"
+git sparse-checkout set $DIR_NAME_MENU
+
+# Move vm_menu in /root and clean
+rm -rf $DEST_DIR_MENU/$DIR_NAME_MENU
+mv -f $DIR_NAME_MENU $DEST_DIR_MENU
+rm -rf "$DEST_DIR_MENU/DebianLikeBitrixVM"
+
+chmod -R +x $DEST_DIR_MENU/$DIR_NAME_MENU
+
+# Check script in .profile and add to .profile if not exist
+if ! grep -qF "$FULL_PATH_MENU_FILE" /root/.profile; then
+  cat << INSTALL_MENU >> /root/.profile
+
+if [ -n "\$SSH_CONNECTION" ]; then
+  $FULL_PATH_MENU_FILE
+fi
+
+INSTALL_MENU
+fi
+
+ln -s $FULL_PATH_MENU_FILE "$DEST_DIR_MENU/menu.sh"
+
+# Final actions
+
+cd $DEST_DIR_MENU
+
+source $DEST_DIR_MENU/$DIR_NAME_MENU/bash_scripts/config.sh
+
+DELETE_FILES=(
+  "$BS_PATH_APACHE_SITES_CONF/000-default.conf"
+  "$BS_PATH_APACHE_SITES_ENABLED/000-default.conf"
+)
+
+ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/install_new_full_environment.yaml" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+  -e "domain=default \
+
+  db_name=${DB_NAME} \
+  db_user=${DB_USER} \
+  db_password=${DBPASS} \
+
+  document_root=${DOCUMENT_ROOT} \
+
+  delete_files=$(IFS=,; echo "${DELETE_FILES[*]}") \
+
+  download_bitrix_install_files_new_site=$(IFS=,; echo "${BS_DOWNLOAD_BITRIX_INSTALL_FILES_NEW_SITE[*]}") \
+  timeout_download_bitrix_install_files_new_site=${BS_TIMEOUT_DOWNLOAD_BITRIX_INSTALL_FILES_NEW_SITE} \
+
+  user_server_sites=${BS_USER_SERVER_SITES} \
+  group_user_server_sites=${BS_GROUP_USER_SERVER_SITES} \
+
+  permissions_sites_dirs=${BS_PERMISSIONS_SITES_DIRS} \
+  permissions_sites_files=${BS_PERMISSIONS_SITES_FILES} \
+
+  service_nginx_name=${BS_SERVICE_NGINX_NAME} \
+  path_nginx=${BS_PATH_NGINX} \
+  path_nginx_sites_conf=${BS_PATH_NGINX_SITES_CONF} \
+  path_nginx_sites_enabled=${BS_PATH_NGINX_SITES_ENABLED} \
+
+  service_apache_name=${BS_SERVICE_APACHE_NAME} \
+  path_apache=${BS_PATH_APACHE} \
+  path_apache_sites_conf=${BS_PATH_APACHE_SITES_CONF} \
+  path_apache_sites_enabled=${BS_PATH_APACHE_SITES_ENABLED} \
+
+  push_key=${PUSH_KEY}"
+
+echo -e "\n\n";
+echo "Full environment installed";
+echo -e "\n";
+
+END
+
+bash /root/temp_install_full_environment.sh
+
+rm /root/temp_install_full_environment.sh
+rm /root/run.sh

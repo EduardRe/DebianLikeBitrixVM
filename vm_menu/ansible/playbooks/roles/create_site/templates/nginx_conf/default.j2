@@ -1,0 +1,63 @@
+# Default website
+server {
+
+    listen 80 default_server;
+    server_name _;
+    server_name_in_redirect off;
+
+    proxy_set_header	X-Real-IP        $remote_addr;
+    proxy_set_header	X-Forwarded-For  $proxy_add_x_forwarded_for;
+    proxy_set_header	Host $host;
+
+    proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
+    proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;
+
+    set $docroot		"{{ document_root }}";
+
+    index index.php;
+    root "{{ document_root }}";
+
+    # BXTEMP - personal settings
+    include conf.d/bx_temp.conf;
+
+    # Include parameters common to all websites
+    include conf.d/bitrix.conf;
+
+}
+
+server {
+
+    listen 443 ssl http2 default_server;
+
+    server_name _;
+    server_name_in_redirect off;
+
+    ### START PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###
+
+    # HERE YOU CAN CONNECT YOUR CONFIG WITH AN SSL CERTIFICATE
+    include snippets/snakeoil.conf;
+
+    # DONT DELETE THIS PARAMETERS - MANAGED SSL CERTS FROM Lets Encrypt
+    # ssl_certificate /path/lets_encrypt/cert/fullchain.pem;
+    # ssl_certificate_key /path/lets_encrypt/key/privkey.pem;
+
+    ### END PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###
+
+    proxy_set_header    X-Real-IP        $remote_addr;
+    proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+    proxy_set_header    Host $host;
+
+    proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
+    proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;
+
+    set $docroot "{{ document_root }}";
+
+    index index.php;
+    root "{{ document_root }}";
+
+    # BXTEMP - personal settings
+    include conf.d/bx_temp.conf;
+
+    # Include parameters common to all websites
+    include conf.d/bitrix.conf;
+}

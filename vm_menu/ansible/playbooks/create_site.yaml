@@ -1,0 +1,14 @@
+---
+- name: "Creating of the site {{ domain }}, mode: {{ mode }}"
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  roles:
+    - role: create_site
+    - role: get_lets_encrypt_certificate
+      vars:
+        domain: "{{ domain }}"
+        path_site: "{{ path_sites }}/{{ domain }}"
+        email: "{{ ssl_lets_encrypt_email }}"
+      when: ssl_lets_encrypt == "Y"

@@ -1,0 +1,8 @@
+---
+# vars file for get_lets_encrypt_certificate
+letsencrypt_live_dir: /etc/letsencrypt/live
+file_fullchain: fullchain.pem
+file_privkey: privkey.pem
+nginx_config: "default.conf"
+ssl_cert_full_path: ""
+ssl_cert_key_full_path: ""
