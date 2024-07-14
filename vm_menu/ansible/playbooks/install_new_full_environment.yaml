@@ -5,6 +5,16 @@
   become: yes
   gather_facts: no
   tasks:
+    - name: Setting timezone to UTC
+      ansible.builtin.command:
+        cmd: timedatectl set-timezone UTC
+
+    - name: Restarting MySQL service
+      service:
+        name: mariadb
+        state: restarted
+      ignore_errors: yes
+
     - name: Creating array for deleting files
       set_fact:
         dell_files: "{{ delete_files.split(',') }}"
@@ -185,34 +195,101 @@
           #!/bin/bash
           source /root/vm_menu/bash_scripts/utils.sh
           get_ip_current_server
-          if [ -n "$CURRENT_SERVER_IP" ]; then
-            version=$(cat /etc/issue.net)
-            echo "$version" > /etc/issue
-            echo -e "\n IP address: ${CURRENT_SERVER_IP}\n" >> /etc/issue
-          fi
+          echo -e "\n\n          ${CURRENT_SERVER_IP}\ndebian login:" > /dev/tty1
+
         mode: '0755'
 
     - name: Creating systemd service for IP showing
       copy:
-        dest: /etc/systemd/system/display-ip.service
+        dest: /etc/systemd/system/display-ip@.service
         content: |
-          [Unit]
-          Description=Show IP address
-          After=network.target
+         [Unit]
+         Description=Show IP address on tty%I
+         After=network-online.target multi-user.target
+         Wants=network-online.target multi-user.target
 
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/local/bin/display-ip.sh
-          StandardOutput=console
+         [Service]
+         ExecStart=/usr/local/bin/display-ip.sh
+         StandardOutput=tty
+         TTYPath=/dev/tty%I
+         Type=simple
 
-          [Install]
-          WantedBy=multi-user.target
+         [Install]
+         WantedBy=getty.target
         mode: '0644'
 
-    - name: Enabling and starting service
+    - name: Create directory for getty@.service override
+      file:
+        path: /etc/systemd/system/getty@tty1.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Override getty@.service to use display-ip.sh
+      copy:
+        dest: /etc/systemd/system/getty@tty1.service.d/override.conf
+        content: |
+         [Service]
+         ExecStartPost=/usr/local/bin/display-ip.sh
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Restart getty@tty1.service
       systemd:
-        name: display-ip
-        enabled: yes
-        state: started
+        name: getty@tty1
+        state: restarted
 
+# Change site user for connection SSH
+    - name: Installing of python3-passlib
+      apt:
+        name: python3-passlib
+        state: present
 
+    - name: Creating home directory for user {{ user_server_sites }}
+      file:
+        path: "/home/{{ user_server_sites }}"
+        state: directory
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: '0755'
+
+    - name: Creating directory .ssh
+      file:
+        path: "/home/{{ user_server_sites }}/.ssh"
+        state: directory
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: '0700'
+
+    - name: Generating SSH key
+      command: ssh-keygen -t rsa -b 2048 -f "/home/{{ user_server_sites }}/.ssh/id_rsa" -N ''
+      args:
+        creates: "/home/{{ user_server_sites }}/.ssh/id_rsa"
+
+    - name: Copying public key in authorized_keys
+      copy:
+        src: "/home/{{ user_server_sites }}/.ssh/id_rsa.pub"
+        dest: "/home/{{ user_server_sites }}/.ssh/authorized_keys"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: '0600'
+
+    - name: Change the rights to the directory
+      file:
+        path: "/home/{{ user_server_sites }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        recurse: yes
+
+    - name: Change user {{ user_server_sites }} for connecting SSH
+      lineinfile:
+        path: /etc/passwd
+        regexp: "^{{ user_server_sites }}:"
+        line: "{{ user_server_sites }}:x:33:33:{{ group_user_server_sites }}:{{ path_sites }}:/bin/bash"
+        state: present
+
+    - name: Setting password from user {{ user_server_sites }}
+      user:
+        name: "{{ user_server_sites }}"
+        password: "{{ site_user_password | password_hash('sha512', 'passlib') }}"

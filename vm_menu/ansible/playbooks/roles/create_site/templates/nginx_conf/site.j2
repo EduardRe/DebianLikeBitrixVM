@@ -9,6 +9,7 @@ server {
     proxy_set_header	X-Real-IP        $remote_addr;
     proxy_set_header	X-Forwarded-For  $proxy_add_x_forwarded_for;
     proxy_set_header	Host $host;
+    set $is_global_cache  1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
     proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;
@@ -51,6 +52,7 @@ server {
     proxy_set_header    X-Real-IP        $remote_addr;
     proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
     proxy_set_header    Host $host;
+    set $is_global_cache  1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
     proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;

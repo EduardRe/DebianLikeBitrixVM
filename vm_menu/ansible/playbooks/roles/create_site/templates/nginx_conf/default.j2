@@ -8,6 +8,7 @@ server {
     proxy_set_header	X-Real-IP        $remote_addr;
     proxy_set_header	X-Forwarded-For  $proxy_add_x_forwarded_for;
     proxy_set_header	Host $host;
+    set $is_global_cache  1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
     proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;
@@ -16,6 +17,9 @@ server {
 
     index index.php;
     root "{{ document_root }}";
+
+    # Redirect to ssl if need
+    if (-f {{ document_root }}/.htsecure) { rewrite ^(.*)$ https://$host$1 permanent; }
 
     # BXTEMP - personal settings
     include conf.d/bx_temp.conf;
@@ -46,6 +50,7 @@ server {
     proxy_set_header    X-Real-IP        $remote_addr;
     proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
     proxy_set_header    Host $host;
+    set $is_global_cache  1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
     proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;

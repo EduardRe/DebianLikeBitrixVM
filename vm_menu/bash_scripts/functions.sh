@@ -36,7 +36,7 @@ main_menu(){
 
     echo -e "          Welcome to the menu \"Debian Like BitrixVM\" version ${BS_VERSION_MENU}         \n\n";
     if [ $BS_SHOW_IP_CURRENT_SERVER_IN_MENU = true ]; then
-      echo -e "          IP address: ${CURRENT_SERVER_IP}\n\n";
+      echo -e "          ${CURRENT_SERVER_IP}\n";
     fi
     echo -e "${msg_new_version_menu}";
     echo "          1) List of sites dirs";
@@ -189,7 +189,7 @@ get_lets_encrypt_certificate(){
     domain=''
     email='';
 
-    path_site=$BS_PATH_SITES
+    path_site="${BS_PATH_SITES}/${BS_DEFAULT_SITE_NAME}"
     redirect_to_https="N";
 
     echo -e "\n   Menu -> Configure Let\`s Encrypt certificate:\n";
@@ -201,8 +201,6 @@ get_lets_encrypt_certificate(){
     done
 
     email=$(echo "admin@$domain" | "${dir_helpers}/perl/translate.pl")
-
-    path_site="$path_site/$domain"
 
     read_by_def "   Enter full path to site (default: $path_site): " path_site $path_site;
     read_by_def "   Enter email (default: $email): " email $email;

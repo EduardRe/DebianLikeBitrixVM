@@ -18,7 +18,6 @@ REPO_URL="https://github.com/EduardRe/DebianLikeBitrixVM.git"
 
 DB_NAME="bitrix"
 DB_USER="bitrix"
-DOCUMENT_ROOT="/var/www/html/bx-site"
 
 DIR_NAME_MENU="vm_menu"
 DEST_DIR_MENU="/root"
@@ -37,6 +36,7 @@ set +x
 
 # set mysql root password
 root_pass=$(pwgen 24 1)
+site_user_password=$(pwgen 24 1)
 
 mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${root_pass}');FLUSH PRIVILEGES;"
 
@@ -79,6 +79,8 @@ cd $DEST_DIR_MENU
 
 source $DEST_DIR_MENU/$DIR_NAME_MENU/bash_scripts/config.sh
 
+DOCUMENT_ROOT="${BS_PATH_SITES}/bx-site"
+
 DELETE_FILES=(
   "$BS_PATH_APACHE_SITES_CONF/000-default.conf"
   "$BS_PATH_APACHE_SITES_ENABLED/000-default.conf"
@@ -91,6 +93,9 @@ ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/install_new_fu
   db_user=${DB_USER} \
   db_password=${DBPASS} \
 
+  site_user_password=${site_user_password} \
+
+  path_sites=${BS_PATH_SITES} \
   document_root=${DOCUMENT_ROOT} \
 
   delete_files=$(IFS=,; echo "${DELETE_FILES[*]}") \
@@ -118,6 +123,9 @@ ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/install_new_fu
 
 echo -e "\n\n";
 echo "Full environment installed";
+echo -e "\n";
+echo "Password for the user ${BS_USER_SERVER_SITES}:";
+echo "${site_user_password}";
 echo -e "\n";
 
 END

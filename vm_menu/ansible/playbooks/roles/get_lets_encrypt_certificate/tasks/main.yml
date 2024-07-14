@@ -7,7 +7,7 @@
 
 - name: Getting SSL certificate
   shell: |
-        certbot certonly --webroot --webroot-path {{ path_site }} --non-interactive --agree-tos --email {{ email }} -d {{ domain }}
+        certbot certonly --webroot --webroot-path {{ path_site }} --non-interactive --agree-tos --expand --email {{ email }} -d {{ domain }} -d www.{{ domain }}
   args:
     creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
   ignore_errors: yes

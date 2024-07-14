@@ -79,6 +79,7 @@
       mysql_db:
         name: "{{ db_name }}"
         state: present
+      ignore_errors: yes
 
     - name: Creating database user
       mysql_user:
@@ -86,6 +87,7 @@
         password: "{{ db_password }}"
         priv: "{{ db_name }}.*:ALL"
         state: present
+      ignore_errors: yes
 
     - name: Creating directory bitrix/php_interface
       file:

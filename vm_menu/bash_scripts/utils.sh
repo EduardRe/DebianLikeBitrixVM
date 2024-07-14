@@ -98,8 +98,26 @@ function load_bitrix_vm_version() {
   fi
 }
 
+function get_interfaces() {
+  ip -o -4 addr list | grep -v ' lo ' | awk '{print $2, $4}'
+}
+
 function  get_ip_current_server() {
-  CURRENT_SERVER_IP=$(ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+  while true; do
+    interfaces=$(get_interfaces)
+    if [ -n "$interfaces" ]; then
+        break
+    fi
+    # ip monitor address | grep -m 1 'inet ' > /dev/null
+  done
+
+  CURRENT_SERVER_IP="Interface\tIP\n"
+
+  while read -r line; do
+      iface=$(echo $line | awk '{print $1}')
+      ip=$(echo $line | awk '{print $2}' | cut -d'/' -f1)
+      CURRENT_SERVER_IP+="          $iface\t$ip\n"
+  done <<< "$interfaces"
 }
 
 function get_current_version_php() {
