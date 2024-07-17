@@ -18,6 +18,7 @@ action_create_site(){
 
   path_site_from_links=${path_site_from_links} \
   ssl_lets_encrypt=${ssl_lets_encrypt} \
+  ssl_lets_encrypt_www=${ssl_lets_encrypt_www} \
   ssl_lets_encrypt_email=${ssl_lets_encrypt_email} \
   redirect_to_https=${redirect_to_https} \
 
@@ -45,6 +46,12 @@ action_create_site(){
   path_apache_sites_conf=${BS_PATH_APACHE_SITES_CONF} \
   path_apache_sites_enabled=${BS_PATH_APACHE_SITES_ENABLED} \
 
+  smtp_path_wrapp_script_sh=${BS_SMTP_PATH_WRAPP_SCRIPT_SH} \
+
+  bx_cron_agents_path_file_after_document_root=${BS_BX_CRON_AGENTS_PATH_FILE_AFTER_DOCUMENT_ROOT} \
+  bx_cron_logs_path_dir=${BS_BX_CRON_LOGS_PATH_DIR} \
+  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \
+
   push_key=\${PUSH_KEY} \
 
   pb_redirect_http_to_https=${pb_redirect_http_to_https} \
@@ -60,6 +67,7 @@ action_get_lets_encrypt_certificate(){
   -e "domain=${domain} \
   path_site=${path_site} \
   email=${email} \
+  is_www=${is_www} \
 
   default_full_path_site=${BS_PATH_SITES}/${BS_DEFAULT_SITE_NAME} \
   path_nginx_sites_conf=${BS_PATH_NGINX_SITES_CONF} \
@@ -176,6 +184,57 @@ function action_change_php_version() {
 
     systemctl restart "${BS_SERVICE_APACHE_NAME}"
     systemctl restart "${BS_SERVICE_NGINX_NAME}"
+
+    press_any_key_to_return_menu;
+}
+
+function action_settings_smtp_sites() {
+
+    pb=$(realpath "$dir/${BS_PATH_ANSIBLE_PLAYBOOKS}/${BS_ANSIBLE_PB_SETTINGS_SMTP_SITES}")
+    ansible-playbook "${pb}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+      -e "is_actions_account=Y \
+      account_name=${site} \
+      email_from=${email_from} \
+      smtp_host=${host} \
+      smtp_port=${port} \
+      is_auth=${is_auth} \
+      login=${login} \
+      password=${password} \
+      authentication_method=${authentication_method} \
+      enable_TLS=${enable_TLS} \
+
+      smtp_file_sites_config=${BS_SMTP_FILE_SITES_CONFIG} \
+      smtp_file_user_config=${BS_SMTP_FILE_USER_CONFIG} \
+      smtp_file_group_user_config=${BS_SMTP_FILE_GROUP_USER_CONFIG} \
+      smtp_file_permissions_config=${BS_SMTP_FILE_PERMISSIONS_CONFIG} \
+      smtp_file_user_log=${BS_SMTP_FILE_USER_LOG} \
+      smtp_file_group_user_log=${BS_SMTP_FILE_GROUP_USER_LOG} \
+      smtp_path_wrapp_script_sh=${BS_SMTP_PATH_WRAPP_SCRIPT_SH}"
+
+    press_any_key_to_return_menu;
+}
+
+function action_install_or_delete_netdata() {
+
+    if [ $action = "INSTALL" ]; then
+      login=$(pwgen 20 1)
+      password=$(pwgen 30 1)
+      hash_pass=$(htpasswd -nb $login $password)
+      echo "$hash_pass" > "/etc/${BS_SERVICE_NGINX_NAME}/netdata_passwds"
+    fi
+
+    pb=$(realpath "$dir/${BS_PATH_ANSIBLE_PLAYBOOKS}/${BS_ANSIBLE_PB_INSTALL_OR_DELETE_NETDATA}")
+    ansible-playbook "${pb}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+      -e "netdata_action=${action}
+      service_nginx_name=${BS_SERVICE_NGINX_NAME}"
+
+    if [ $action = "INSTALL" ]; then
+      echo -e "
+      Netdata is installed and configured.
+      please follow the link \e[33mhttp://IP or domain/netdata/\e[0m or \e[33mhttps://IP or domain/netdata/\e[0m
+      \e[33mLogin: ${login}\e[0m
+      \e[33mPassword: ${password}\e[0m"
+    fi
 
     press_any_key_to_return_menu;
 }

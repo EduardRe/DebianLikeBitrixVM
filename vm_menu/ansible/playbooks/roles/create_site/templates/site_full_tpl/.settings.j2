@@ -85,7 +85,7 @@ return array(
             'nginx_headers' => 'N',
             'push' => 'Y',
             'websocket' => 'Y',
-            'signature_key' => '${PUSH_KEY}',
+            'signature_key' => '{{ push_key }}',
             'signature_algo' => 'sha1',
             'guest' => 'N',
         ),

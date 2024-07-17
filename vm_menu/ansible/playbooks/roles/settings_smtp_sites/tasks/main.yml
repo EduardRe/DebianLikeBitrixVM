@@ -1,0 +1,146 @@
+---
+# tasks file for settings_smtp_sites
+- name: Adding wrapper SMTP SH script
+  block:
+    - name: Generating SH script
+      template:
+        dest: "{{ smtp_path_wrapp_script_sh }}"
+        src: "local_scripts/msmtp_wrapper.j2"
+        owner: "{{ smtp_file_user_config }}"
+        group: "{{ smtp_file_group_user_config }}"
+        mode: '0755'
+
+  when: is_new_install_env is defined and is_new_install_env == 'Y'
+
+- name: Adding SMTP settings the site {{ site }}
+  block:
+    - name: Installing MSMTP
+      apt:
+        name: msmtp
+        state: present
+
+    - name: Creating setting file
+      lineinfile:
+        line: ""
+        path: "{{ smtp_file_sites_config }}"
+        owner: "{{ smtp_file_user_config }}"
+        group: "{{ smtp_file_group_user_config }}"
+        mode: "{{ smtp_file_permissions_config }}"
+        create: yes
+        state: present
+
+    - name: Creating symlink setting file
+      file:
+        src: "{{ smtp_file_sites_config }}"
+        dest: /etc/msmtprc
+        state: link
+        force: yes
+
+    - name: Creating log file
+      lineinfile:
+        line: ""
+        path: "{{ log_path }}"
+        owner: "{{ smtp_file_user_log }}"
+        group: "{{ smtp_file_group_user_log }}"
+        mode: "{{ smtp_file_permissions_config }}"
+        create: yes
+        state: present
+
+    - name: Read the current content of the file
+      slurp:
+        src: "{{ smtp_file_sites_config }}"
+      register: msmtprc_content
+
+    - name: Comment lines between markers
+      set_fact:
+        new_msmtprc_content: |
+          {%- set start = {'word': false} -%}
+          {% for line in msmtprc_content.content | b64decode | split('\n') %}
+            {%- set stripped_line = line.strip() -%}
+            {%- if stripped_line.startswith('# smtp auto managed account '+account_name) -%}
+              {%- if start.update({'word': true}) -%} {% endif -%}
+            {%- elif start.word and stripped_line.startswith('# smtp auto managed account') -%}
+              {%- if start.update({'word': false}) -%} {% endif -%}
+            {%- endif -%}
+            {%- if start.word -%}
+               {%- if line.strip() -%}
+                  {%- set line = stripped_line.replace('#', '') -%}
+                  {%- set line = '# ' + line -%}
+                {%- endif -%}
+            {%- endif -%}
+            {{ line }}
+          {% endfor %}
+
+    - name: Saving new SMTP configuration
+      copy:
+        content: "{{ new_msmtprc_content }}"
+        dest: "{{ smtp_file_sites_config }}"
+
+    - name: Add new block configuration in SMTP config file
+      blockinfile:
+        marker: ''
+        path: "{{ smtp_file_sites_config }}"
+        block: |
+           # smtp auto managed account {{ account_name }}
+           account {{ account_name }}
+           logfile {{ log_path }}
+           timeout {{ smtp_timeout }}
+           host {{ smtp_host }}
+           port {{ smtp_port }}
+           from {{ email_from }}
+           aliases /etc/aliases
+           keepbcc off
+           {% if is_auth == 'Y' %}
+           {% if authentication_method == 'auto' %}
+           auth on
+           {% else %}
+           auth {{ authentication_method }}
+           {% endif %}
+           user {{ login }}
+           password {{ password }}
+           {% else %}
+           auth off
+           {% endif %}
+
+           {% if enable_TLS == 'Y' %}
+           tls on
+           {% else %}
+           tls off
+           {% endif %}
+           tls_certcheck off
+           tls_starttls off
+        insertafter: EOF
+
+
+
+  when: is_actions_account is defined and is_actions_account == 'Y'
+
+- block:
+    - name: Read the current content of the file
+      slurp:
+        src: "{{ smtp_file_sites_config }}"
+      register: msmtprc_content
+
+    - name: Read lines between markers
+      set_fact:
+        new_msmtprc_content: |
+          {%- set start = {'word': false} -%}
+          {%- for line in msmtprc_content.content | b64decode | split('\n') -%}
+            {%- set stripped_line = line.strip() -%}
+            {%- if stripped_line.startswith('# smtp auto managed account '+account_name) -%}
+              {%- if start.update({'word': true}) -%} {% endif -%}
+            {%- elif start.word and stripped_line.startswith('# smtp auto managed account') -%}
+              {%- if start.update({'word': false}) -%} {% endif -%}
+            {%- endif -%}
+            {%- if start.word -%}
+               {% if line.strip() and not stripped_line.startswith('#') %}
+                  {{ line }}
+                {% endif %}
+            {%- endif -%}
+          {%- endfor -%}
+
+    - name: Print the content of the file
+      debug:
+        msg: "start_parse {{ new_msmtprc_content }} end_parse"
+  when: print_account is defined and print_account == 'Y'
+  ignore_errors: yes

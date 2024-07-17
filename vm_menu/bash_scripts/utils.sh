@@ -131,7 +131,7 @@ function get_current_version_php() {
 function get_available_version_php() {
     echo -e "\n   Available PHP versions:\n"
 
-    versions=$(apt-cache search php | grep -oP '^php[0-9.]+ ' | sort -u)
+    versions=$(apt-cache search php | grep -oP '^php[0-9.]+ ' | sort -ur)
     for version in $versions; do
         echo "   $version"
     done

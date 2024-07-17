@@ -1,0 +1,20 @@
+---
+- name: Creating directories log
+  file:
+    path: "{{ logs_path_dir }}"
+    state: directory
+    recurse: yes
+    owner: "{{ user_site }}"
+    group: "{{ group_user_site }}"
+    mode: '0774'
+
+- name: Adding cron job for bitrix agents the site {{ domain }}
+  cron:
+    name: Adding cron bitrix agents site {{ domain }}
+    minute: "*/1"
+    hour: "*"
+    day: "*"
+    month: "*"
+    weekday: "*"
+    job: "php {{ path_file_run_cron }} > {{ logs_path_dir }}/site_{{ domain }}_{{ logs_path_file }}"
+    user: "{{ user_site }}"

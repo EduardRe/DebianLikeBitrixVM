@@ -1,0 +1,10 @@
+---
+- name: "{{ netdata_action }} Netdata"
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  roles:
+    - role: install_or_delete_netdata
+
+

@@ -5,9 +5,13 @@ server {
     server_name _;
     server_name_in_redirect off;
 
+    # custom conf
+    include custom_conf.d/section_listen_http/*.conf;
+    include custom_conf.d/section_listen_http_and_https/*.conf;
+
+    proxy_set_header	Host             $host:80;
     proxy_set_header	X-Real-IP        $remote_addr;
     proxy_set_header	X-Forwarded-For  $proxy_add_x_forwarded_for;
-    proxy_set_header	Host $host;
     set $is_global_cache  1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
@@ -26,7 +30,6 @@ server {
 
     # Include parameters common to all websites
     include conf.d/bitrix.conf;
-
 }
 
 server {
@@ -36,10 +39,14 @@ server {
     server_name _;
     server_name_in_redirect off;
 
+    # custom conf
+    include custom_conf.d/section_listen_https/*.conf;
+    include custom_conf.d/section_listen_http_and_https/*.conf;
+
     ### START PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###
 
     # HERE YOU CAN CONNECT YOUR CONFIG WITH AN SSL CERTIFICATE
-    include snippets/snakeoil.conf;
+    include ssl_conf/ssl_{{ domain }}.conf;
 
     # DONT DELETE THIS PARAMETERS - MANAGED SSL CERTS FROM Lets Encrypt
     # ssl_certificate /path/lets_encrypt/cert/fullchain.pem;
@@ -47,10 +54,14 @@ server {
 
     ### END PLEASE DONT DELETE OR EDIT THIS COMMENT MANAGED SSL CERTS. YOU CAN MAKE EDITS BETWEEN THESE COMMENTS ###
 
-    proxy_set_header    X-Real-IP        $remote_addr;
-    proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
-    proxy_set_header    Host $host;
-    set $is_global_cache  1;
+    proxy_set_header    Host                $host:443;
+    proxy_set_header    HTTPS               YES;
+    proxy_set_header    X-Real-IP           $remote_addr;
+    proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
+    proxy_set_header    X-Forwarded-Host    $host;
+    proxy_set_header    X-Forwarded-Scheme  $scheme;
+    proxy_set_header    X-Forwarded-Proto   https;
+    set                 $is_global_cache    1;
 
     proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
     proxy_redirect ~^(https://[^:]+):\d+(/.+)$ $1$2;

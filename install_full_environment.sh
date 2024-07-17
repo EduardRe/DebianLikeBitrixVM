@@ -26,7 +26,7 @@ FULL_PATH_MENU_FILE="$DEST_DIR_MENU/$DIR_NAME_MENU/menu.sh"
 
 apt update -y
 apt upgrade -y
-apt install -y wget curl ansible git
+apt install -y wget curl ansible git ssl-cert libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
 
 bash -c "$(curl -sL $SETUP_BITRIX_DEBIAN_URL)"
 
@@ -86,7 +86,18 @@ DELETE_FILES=(
   "$BS_PATH_APACHE_SITES_ENABLED/000-default.conf"
 )
 
-ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/install_new_full_environment.yaml" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/${BS_ANSIBLE_PB_SETTINGS_SMTP_SITES}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+  -e "is_new_install_env=Y \
+  account_name='' \
+  smtp_file_sites_config=${BS_SMTP_FILE_SITES_CONFIG} \
+  smtp_file_user_config=${BS_SMTP_FILE_USER_CONFIG} \
+  smtp_file_group_user_config=${BS_SMTP_FILE_GROUP_USER_CONFIG} \
+  smtp_file_permissions_config=${BS_SMTP_FILE_PERMISSIONS_CONFIG} \
+  smtp_file_user_log=${BS_SMTP_FILE_USER_LOG} \
+  smtp_file_group_user_log=${BS_SMTP_FILE_GROUP_USER_LOG} \
+  smtp_path_wrapp_script_sh=${BS_SMTP_PATH_WRAPP_SCRIPT_SH}"
+
+ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/${BS_ANSIBLE_PB_INSTALL_NEW_FULL_ENVIRONMENT}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
   -e "domain=default \
 
   db_name=${DB_NAME} \
@@ -118,6 +129,12 @@ ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/install_new_fu
   path_apache=${BS_PATH_APACHE} \
   path_apache_sites_conf=${BS_PATH_APACHE_SITES_CONF} \
   path_apache_sites_enabled=${BS_PATH_APACHE_SITES_ENABLED} \
+
+  smtp_path_wrapp_script_sh=${BS_SMTP_PATH_WRAPP_SCRIPT_SH} \
+
+  bx_cron_agents_path_file_after_document_root=${BS_BX_CRON_AGENTS_PATH_FILE_AFTER_DOCUMENT_ROOT} \
+  bx_cron_logs_path_dir=${BS_BX_CRON_LOGS_PATH_DIR} \
+  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \
 
   push_key=${PUSH_KEY}"
 

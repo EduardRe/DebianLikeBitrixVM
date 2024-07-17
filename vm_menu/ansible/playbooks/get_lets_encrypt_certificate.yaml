@@ -6,6 +6,3 @@
   gather_facts: no
   roles:
     - role: get_lets_encrypt_certificate
-      vars:
-        domain: "{{ domain }}"
-        email: "{{ ssl_lets_encrypt_email }}"

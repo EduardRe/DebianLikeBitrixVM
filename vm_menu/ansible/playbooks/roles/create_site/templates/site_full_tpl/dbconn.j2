@@ -24,7 +24,10 @@ define('MYSQL_TABLE_TYPE', 'INNODB');
 define('SHORT_INSTALL', true);
 define('VM_INSTALL', true);
 define('BX_UTF', true);
-define('BX_CRONTAB_SUPPORT', false);
 define('BX_COMPRESSION_DISABLED', true);
 define('BX_DISABLE_INDEX_PAGE', true);
 define('BX_USE_MYSQLI', true);
+
+if(!(defined('CHK_EVENT') && CHK_EVENT === true)){
+   define('BX_CRONTAB_SUPPORT', true);
+}

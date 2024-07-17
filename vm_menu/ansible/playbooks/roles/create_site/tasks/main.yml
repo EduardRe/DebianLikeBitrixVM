@@ -113,6 +113,14 @@
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
 
+    - include_tasks: "tasks/add_cron_agents.yaml"
+      vars:
+        - path_file_run_cron: "{{ path_sites }}/{{ domain }}{{ bx_cron_agents_path_file_after_document_root }}"
+        - user_site: "{{ user_server_sites }}"
+        - group_user_site: "{{ group_user_server_sites }}"
+        - logs_path_dir: "{{ bx_cron_logs_path_dir }}"
+        - logs_path_file: "{{ bx_cron_logs_path_file }}"
+
   when: mode == 'full'
 
 ############## SITE FILES ##############
@@ -125,6 +133,11 @@
     mode: "{{ permissions_sites_files }}"
 
 ############## NGINX ##############
+- name: Copying ssl_default.conf to ssl_{{ domain }}.conf
+  copy:
+    src: "nginx_files/ssl_conf/ssl_default.conf"
+    dest: "/etc/{{ service_nginx_name }}/ssl_conf/ssl_{{ domain }}.conf"
+
 - name: Adding Nginx configuration file
   template:
     dest: "{{ path_nginx_sites_conf }}/{{ domain }}.conf"

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Path to config file from sites
+CONFIG_FILE="{{ smtp_file_sites_config }}"
+
+# Account name
+ACCOUNT="$1"
+
+if command -v msmtp >/dev/null 2>&1; then
+    if grep -q "^[^#]*account\s\+$ACCOUNT" "$CONFIG_FILE"; then
+        # If the account found, use it
+        /usr/bin/msmtp -C "$CONFIG_FILE" -a "$ACCOUNT" -t
+    else
+        # If the account not found, use default account
+        /usr/bin/msmtp -C "$CONFIG_FILE" -a default -t
+    fi
+else
+    # If dos`nt msmtp installed, use standard sendmail
+    /usr/sbin/sendmail -t
+fi

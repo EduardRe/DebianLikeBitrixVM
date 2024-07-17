@@ -8,7 +8,7 @@
     - role: create_site
     - role: get_lets_encrypt_certificate
       vars:
-        domain: "{{ domain }}"
         path_site: "{{ path_sites }}/{{ domain }}"
+        is_www: "{{ ssl_lets_encrypt_www }}"
         email: "{{ ssl_lets_encrypt_email }}"
       when: ssl_lets_encrypt == "Y"

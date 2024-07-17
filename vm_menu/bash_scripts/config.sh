@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 
 # General configs
-BS_VERSION_MENU="1.0.1"
+BS_VERSION_MENU="1.1.0"
 BS_PATH_SITES="/var/www/html"
 BS_DEFAULT_SITE_NAME="bx-site"
 BS_PATH_DEFAULT_SITE="$BS_PATH_SITES/$BS_DEFAULT_SITE_NAME"
@@ -17,6 +17,11 @@ BS_DOWNLOAD_BITRIX_INSTALL_FILES_NEW_SITE=(
 )
 BS_TIMEOUT_DOWNLOAD_BITRIX_INSTALL_FILES_NEW_SITE=30
 BS_SHOW_IP_CURRENT_SERVER_IN_MENU=true
+
+# Bitrix agents configs
+BS_BX_CRON_AGENTS_PATH_FILE_AFTER_DOCUMENT_ROOT="/bitrix/modules/main/tools/cron_events.php"
+BS_BX_CRON_LOGS_PATH_DIR="/var/log/bitrix_cron_agents"
+BS_BX_CRON_LOGS_PATH_FILE="agents_cron.log"
 
 # PHP configs (VER#0.0 - it will be automatically replaced when the version is selected)
 BS_PHP_INSTALL_TEMPLATE=(
@@ -47,6 +52,9 @@ BS_PATH_ANSIBLE_PLAYBOOKS="../ansible/playbooks"
 BS_ANSIBLE_PB_CREATE_SITE="create_site.yaml"
 BS_ANSIBLE_PB_GET_LETS_ENCRYPT_CERTIFICATE="get_lets_encrypt_certificate.yaml"
 BS_ANSIBLE_PB_ENABLE_OR_DISABLE_REDIRECT_HTTP_TO_HTTPS="enable_or_disable_redirect_http_to_https.yaml"
+BS_ANSIBLE_PB_INSTALL_NEW_FULL_ENVIRONMENT="install_new_full_environment.yaml"
+BS_ANSIBLE_PB_SETTINGS_SMTP_SITES="settings_smtp_sites.yaml"
+BS_ANSIBLE_PB_INSTALL_OR_DELETE_NETDATA="install_or_delete_netdata.yaml"
 
 # Data Base
 BS_MAX_CHAR_DB_NAME=10
@@ -69,6 +77,16 @@ BS_PATH_APACHE_SITES_ENABLED="$BS_PATH_APACHE/sites-enabled"
 BS_VAR_NAME_BVM="BITRIX_VA_VER"
 BS_VAR_VALUE_BVM="99.99.99"
 BS_VAR_PATH_FILE_BVM="/etc/apache2/envvars"
+
+# SMTP configs
+BS_SMTP_FILE_SITES_CONFIG="${BS_PATH_SITES}/.msmtprc"
+BS_SMTP_FILE_USER_CONFIG="${BS_USER_SERVER_SITES}"
+BS_SMTP_FILE_GROUP_USER_CONFIG="${BS_GROUP_USER_SERVER_SITES}"
+BS_SMTP_FILE_PERMISSIONS_CONFIG="0600"
+BS_SMTP_FILE_USER_LOG="${BS_USER_SERVER_SITES}"
+BS_SMTP_FILE_GROUP_USER_LOG="${BS_GROUP_USER_SERVER_SITES}"
+BS_SMTP_PATH_WRAPP_SCRIPT_SH="/usr/local/bin/msmtp_wrapper.sh"
+
 
 # Check new version menu
 BS_BRANCH_UPDATE_MENU="master"

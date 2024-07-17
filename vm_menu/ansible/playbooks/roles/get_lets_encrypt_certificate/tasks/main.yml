@@ -7,18 +7,19 @@
 
 - name: Getting SSL certificate
   shell: |
-        certbot certonly --webroot --webroot-path {{ path_site }} --non-interactive --agree-tos --expand --email {{ email }} -d {{ domain }} -d www.{{ domain }}
+        certbot certonly --webroot --webroot-path {{ path_site }} --non-interactive --agree-tos --expand --allow-subset-of-names --deploy-hook "systemctl restart nginx" --email {{ email }} -d {{ domain }} {% if is_www == 'Y' %}-d www.{{ domain }}{% endif %}
   args:
     creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
   ignore_errors: yes
 
-- name: Creating cron task Certbot Renewal SSL Certificate
-  cron:
-    name: "Certbot Renewal"
-    job: "certbot renew --non-interactive --post-hook 'systemctl reload nginx'"
-    special_time: "weekly"
-    user: "root"
-  ignore_errors: yes
+# Certbot automatic aded task to renew certificate
+#- name: Creating cron task Certbot Renewal SSL Certificate
+#  cron:
+#    name: "Certbot Renewal"
+#    job: "certbot renew --non-interactive --post-hook 'systemctl reload nginx'"
+#    special_time: "weekly"
+#    user: "root"
+#  ignore_errors: yes
 
 - name: Searching domain directory
   find:

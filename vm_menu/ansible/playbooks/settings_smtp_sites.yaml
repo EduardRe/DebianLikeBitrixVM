@@ -1,0 +1,10 @@
+---
+- name: Settings SMTP server
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  roles:
+    - role: settings_smtp_sites
+
+

@@ -1,0 +1,82 @@
+---
+# tasks file for install_or_delete_netdata
+- block:
+    - name: Installing Netdata
+      shell: wget -O /tmp/netdata-kickstart.sh https://get.netdata.cloud/kickstart.sh && sh /tmp/netdata-kickstart.sh --non-interactive
+
+    - name: Copying {{ service_nginx_name }} directory to /etc/{{ service_nginx_name }}
+      copy:
+        src: "nginx/"
+        dest: "/etc/{{ service_nginx_name }}/"
+
+    - name: Restarting Nginx
+      systemd:
+        name: "{{ service_nginx_name }}"
+        state: restarted
+
+  when: netdata_action == 'INSTALL'
+
+- block:
+    - name: Find files deleting nginx configs
+      ansible.builtin.find:
+        paths: "{{ role_path }}/files/{{ service_nginx_name }}"
+        file_type: file
+        recurse: yes
+      register: found_files
+
+    - name: Deleting files in /etc/{{ service_nginx_name }}
+      ansible.builtin.file:
+        path: "/etc/nginx/{{ item.path | regex_replace('^' + role_path + '/files/'+ service_nginx_name +'/', '') }}"
+        state: absent
+      loop: "{{ found_files.files }}"
+
+    - name: Stoping Netdata service
+      ansible.builtin.systemd:
+        name: netdata
+        state: stopped
+
+    - name: Disable Netdata service
+      ansible.builtin.systemd:
+        name: netdata
+        enabled: no
+
+    - name: Deleting Netdata package
+      ansible.builtin.apt:
+        name: netdata
+        state: absent
+        purge: yes
+
+    - name: Deleting Netdata directory
+      ansible.builtin.file:
+        path: /usr/sbin/netdata
+        state: absent
+
+    - name: Deleting Netdata configuration files
+      ansible.builtin.file:
+        path: /etc/netdata
+        state: absent
+        recurse: yes
+      ignore_errors: yes
+
+
+    - name: Deleting Netdata logs
+      ansible.builtin.file:
+        path: /var/log/netdata
+        state: absent
+        recurse: yes
+      ignore_errors: yes
+
+    - name: Deleting Netdata user
+      ansible.builtin.user:
+        name: netdata
+        state: absent
+      ignore_errors: yes
+
+    - name: Restarting Nginx
+      systemd:
+        name: "{{ service_nginx_name }}"
+        state: restarted
+
+  when: netdata_action == 'DELETE'
+
+

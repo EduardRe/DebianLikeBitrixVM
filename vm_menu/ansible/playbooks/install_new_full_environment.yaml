@@ -5,6 +5,16 @@
   become: yes
   gather_facts: no
   tasks:
+    - include_tasks: "tasks/add_cron_agents.yaml"
+      vars:
+        - domain: "default"
+        - path_file_run_cron: "{{ document_root }}{{ bx_cron_agents_path_file_after_document_root }}"
+        - user_site: "{{ user_server_sites }}"
+        - group_user_site: "{{ group_user_server_sites }}"
+        - logs_path_dir: "{{ bx_cron_logs_path_dir }}"
+        - logs_path_file: "{{ bx_cron_logs_path_file }}"
+
+
     - name: Setting timezone to UTC
       ansible.builtin.command:
         cmd: timedatectl set-timezone UTC
@@ -50,7 +60,7 @@
     - name: Generating index.html using links of downloaded files
       template:
         dest: "{{ document_root }}/index.html"
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/index.j2"
+        src: "roles/create_site/templates/site_full_tpl/index.j2"
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
@@ -67,7 +77,7 @@
     - name: Generating dbconn.php file
       template:
         dest: "{{ document_root }}/bitrix/php_interface/dbconn.php"
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/dbconn.j2"
+        src: "roles/create_site/templates/site_full_tpl/dbconn.j2"
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
@@ -75,7 +85,7 @@
     - name: Generating .settings.php file
       template:
         dest: "{{ document_root }}/bitrix/.settings.php"
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/site_full_tpl/.settings.j2"
+        src: "roles/create_site/templates/site_full_tpl/.settings.j2"
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
@@ -83,17 +93,30 @@
     ############## SITE FILES ##############
     - name: Adding .htaccess file
       copy:
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/files/site_files/.htaccess"
+        src: "roles/create_site/files/site_files/.htaccess"
         dest: "{{ document_root }}"
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
 
     ############## NGINX ##############
+    - name: Copying nginx_files directory to /etc/{{ service_nginx_name }}
+      copy:
+        src: "roles/create_site/files/nginx_files/"
+        dest: "/etc/{{ service_nginx_name }}/"
+
+    - name: Insert include line into http section of nginx.conf
+      blockinfile:
+        path: "/etc/{{ service_nginx_name }}/nginx.conf"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+         include custom_conf.d/section_http/*.conf;
+        insertafter: "^http\\s*{"
+
     - name: Adding Nginx configuration file
       template:
         dest: "{{ path_nginx_sites_conf }}/default.conf"
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/nginx_conf/default.j2"
+        src: "roles/create_site/templates/nginx_conf/default.j2"
 
     - name: Creating symbol link (site_enable) for Nginx configuration file
       file:
@@ -102,65 +125,31 @@
         state: link
 
 # Fix bug, dont start NGINX after reboot system
-    - name: Ensuring 'Requires=apache2.service' is in [Unit]
-      lineinfile:
-        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-        regexp: '^Requires='
-        line: 'Requires=apache2.service'
-        insertafter: '\[Unit\]'
-        state: present
 
-    - name: Ensuring 'After' contains 'apache2.service'
-      block:
-        - name: Check if 'After' exists
-          command: grep '^After=' "/lib/systemd/system/{{ service_nginx_name }}.service"
-          register: after_line
-          ignore_errors: yes
+    - name: Creating directory for override.conf
+      file:
+        path: "/etc/systemd/system/{{ service_nginx_name }}.service.d"
+        state: directory
+        mode: '0755'
 
-        - name: "Adding 'After' line if doesn`t present"
-          lineinfile:
-            path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-            line: 'After=apache2.service'
-          when: after_line.rc != 0
+    - name: Create and write to override.conf
+      copy:
+        dest: "/etc/systemd/system/{{ service_nginx_name }}.service.d/override.conf"
+        content: |
+         [Unit]
+         Requires=apache2.service
+         After=network-online.target remote-fs.target nss-lookup.target apache2.service
+         Wants=network-online.target apache2.service
 
-        - name: Ensuring 'After' contains 'apache2.service'
-          lineinfile:
-            path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-            regexp: '^After='
-            line: "{{ 'After=' + (after_line.stdout.split('=')[1] + ' apache2.service').split() | unique | join(' ') }}"
-          when: after_line.rc == 0
+         [Service]
+         StartLimitBurst=50
+         StartLimitIntervalSec=500
+         RestartSec=1s
+         Restart=on-failure
+        mode: '0644'
 
-    - name: Ensuring 'Restart=on-failure' is in [Service]
-      lineinfile:
-        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-        regexp: '^Restart='
-        line: 'Restart=on-failure'
-        insertafter: '\[Service\]'
-        state: present
-
-    - name: Ensuring 'RestartSec=1s' is in [Service]
-      lineinfile:
-        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-        regexp: '^RestartSec='
-        line: 'RestartSec=1s'
-        insertafter: '\[Service\]'
-        state: present
-
-    - name: Ensuring 'StartLimitIntervalSec=500' is in [Service]
-      lineinfile:
-        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-        regexp: '^StartLimitIntervalSec='
-        line: 'StartLimitIntervalSec=500'
-        insertafter: '\[Service\]'
-        state: present
-
-    - name: Ensuring 'StartLimitBurst=50' is in [Service]
-      lineinfile:
-        path: "/lib/systemd/system/{{ service_nginx_name }}.service"
-        regexp: '^StartLimitBurst='
-        line: 'StartLimitBurst=50'
-        insertafter: '\[Service\]'
-        state: present
+    - name: Reload systemd to apply changes
+      command: systemctl daemon-reload
 
 # END fix bug, dont start NGINX after reboot system
 
@@ -174,7 +163,7 @@
     - name: Adding Apache configuration file
       template:
         dest: "{{ path_apache_sites_conf }}/default.conf"
-        src: "/root/vm_menu/ansible/playbooks/roles/create_site/templates/apache_conf/default.j2"
+        src: "roles/create_site/templates/apache_conf/default.j2"
 
     - name: Creating symbol link (site_enable) for Apache configuration file
       file:
