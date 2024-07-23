@@ -1,0 +1,58 @@
+---
+- name: Delete the site {{ site }}
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Deliting site dir {{ full_path_site }}
+      command: rm -rf "{{ full_path_site }}"
+      ignore_errors: yes
+
+    - block:
+
+        - name: Installing of python3-pymysql
+          apt:
+            name: python3-pymysql
+            state: present
+
+        - name: Deliting data base {{ db_name }}
+          mysql_db:
+            name: "{{ db_name }}"
+            state: absent
+          ignore_errors: yes
+
+        - name: Deliting database user {{ db_user }}
+          mysql_user:
+            name: "{{ db_user }}"
+            state: absent
+          ignore_errors: yes
+
+        - name: Deliting cron task
+          cron:
+            name: Adding cron bitrix agents site {{ site }}
+            user: "{{ user_server_sites }}"
+            state: absent
+          ignore_errors: yes
+
+      when: type == "full"
+
+    - name: Rename Nginx config {{ site }}.conf
+      command: mv "{{ path_nginx_sites_conf }}/{{ site }}.conf" "{{ path_nginx_sites_conf }}/{{ site }}.conf_DELETE_SITE"
+      ignore_errors: yes
+
+    - name: Rename Apache config {{ site }}.conf
+      command: mv "{{ path_apache_sites_conf }}/{{ site }}.conf" "{{ path_apache_sites_conf }}/{{ site }}.conf_DELETE_SITE"
+      ignore_errors: yes
+
+    - name: Restarting Nginx
+      systemd:
+        name: "{{ service_nginx_name }}"
+        state: restarted
+      ignore_errors: yes
+
+    - name: Restarting Apache
+      systemd:
+        name: "{{ service_apache_name }}"
+        state: restarted
+      ignore_errors: yes

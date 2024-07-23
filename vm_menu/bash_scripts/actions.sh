@@ -175,12 +175,24 @@ function action_change_php_version() {
     install_php=$(echo "$install_php" | sed "s/VER#0.0/$new_version_php/g")
     apt install -y $install_php
 
+    wget -q "${BS_DOWNLOAD_BITRIX_CONFIGS}"
+    unzip -o debian.zip && rm debian.zip
+    rsync -a --force ./debian/php.d/ "/etc/php/${new_version_php}/mods-available/"
+    rm -rf ./debian
+
+    ln -sf "/etc/php/${new_version_php}/mods-available/zbx-bitrix.ini"  "/etc/php/${new_version_php}/apache2/conf.d/99-bitrix.ini"
+    ln -sf "/etc/php/${new_version_php}/mods-available/zbx-bitrix.ini"  "/etc/php/${new_version_php}/cli/conf.d/99-bitrix.ini"
+
     # disable all php_modules
     for module in $(ls "${BS_PATH_APACHE}/mods-enabled" | grep php | sed 's/_module\.load//'); do
       a2dismod $module
     done
 
     a2enmod "php${new_version_php}"
+
+    update-alternatives --set php "/usr/bin/php${new_version_php}"
+    update-alternatives --set phar "/usr/bin/phar${new_version_php}"
+    update-alternatives --set phar.phar "/usr/bin/phar.phar${new_version_php}"
 
     systemctl restart "${BS_SERVICE_APACHE_NAME}"
     systemctl restart "${BS_SERVICE_NGINX_NAME}"
@@ -218,7 +230,7 @@ function action_install_or_delete_netdata() {
 
     if [ $action = "INSTALL" ]; then
       login=$(pwgen 20 1)
-      password=$(pwgen 30 1)
+      password=$(generate_password 30)
       hash_pass=$(htpasswd -nb $login $password)
       echo "$hash_pass" > "/etc/${BS_SERVICE_NGINX_NAME}/netdata_passwds"
     fi
@@ -237,4 +249,24 @@ function action_install_or_delete_netdata() {
     fi
 
     press_any_key_to_return_menu;
+}
+
+function action_delete_site() {
+    pb=$(realpath "$dir/${BS_PATH_ANSIBLE_PLAYBOOKS}/${BS_ANSIBLE_PB_DELETE_SITE}")
+    ansible-playbook "${pb}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+      -e "site=${site} \
+      full_path_site=${full_path_site} \
+      db_name=${db_name} \
+      db_user=${db_user} \
+      type=${type} \
+
+      user_server_sites=${BS_USER_SERVER_SITES} \
+
+      service_nginx_name=${BS_SERVICE_NGINX_NAME} \
+      path_nginx_sites_conf=${BS_PATH_NGINX_SITES_CONF} \
+
+      service_apache_name=${BS_SERVICE_APACHE_NAME} \
+      path_apache_sites_conf=${BS_PATH_APACHE_SITES_CONF}"
+
+    press_any_key_to_return_menu
 }

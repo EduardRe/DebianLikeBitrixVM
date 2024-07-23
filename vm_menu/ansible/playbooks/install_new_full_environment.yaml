@@ -4,16 +4,25 @@
   connection: local
   become: yes
   gather_facts: no
+  vars:
+    - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ domain }}/"
   tasks:
     - include_tasks: "tasks/add_cron_agents.yaml"
       vars:
-        - domain: "default"
         - path_file_run_cron: "{{ document_root }}{{ bx_cron_agents_path_file_after_document_root }}"
         - user_site: "{{ user_server_sites }}"
         - group_user_site: "{{ group_user_server_sites }}"
         - logs_path_dir: "{{ bx_cron_logs_path_dir }}"
         - logs_path_file: "{{ bx_cron_logs_path_file }}"
 
+    - name: Creating directory from bitrix temporary files
+      file:
+        state: directory
+        path: "{{ bx_temporary_files_directory }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_dirs }}"
+        recurse: yes
 
     - name: Setting timezone to UTC
       ansible.builtin.command:
@@ -282,3 +291,15 @@
       user:
         name: "{{ user_server_sites }}"
         password: "{{ site_user_password | password_hash('sha512', 'passlib') }}"
+
+    - name: Link creating
+      file:
+        src: "/home/{{ user_server_sites }}/.ssh"
+        dest: "{{ path_sites }}/.ssh"
+        state: link
+
+    - include_tasks: "tasks/change_owner_and_group_symbolic_links.yaml"
+      vars:
+        path_links:
+          - ".ssh"
+        full_path: "{{ path_sites }}"

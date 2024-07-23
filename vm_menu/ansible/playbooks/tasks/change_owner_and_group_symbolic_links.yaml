@@ -1,0 +1,12 @@
+---
+- name: Checking of path existence resources
+  stat:
+    path: "{{ full_path }}/{{ item }}"
+  register: link_source
+  with_items: "{{ path_links }}"
+
+- name: Change owner and group of the symbolic links
+  command: chown -h {{ user_server_sites }}:{{ group_user_server_sites }} "{{ full_path }}/{{ item.item }}"
+  when: item.stat.exists
+  with_items: "{{ link_source.results }}"
+  ignore_errors: yes

@@ -1,5 +1,6 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+set +x
+set -euo pipefail
 # Install full environment
 # MASTER branch
 
@@ -10,7 +11,23 @@
 # bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)
 
 cat > /root/temp_install_full_environment.sh <<\END
-#!/bin/bash
+#!/usr/bin/env bash
+set +x
+set -euo pipefail
+
+generate_password() {
+    local length=$1
+    local specials='!@#$%^&*()-_=+[]|;:,.<>?/~'
+    local all_chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789${specials}"
+
+    local password=""
+    for i in $(seq 1 $length); do
+        local char=${all_chars:RANDOM % ${#all_chars}:1}
+        password+=$char
+    done
+
+    echo $password
+}
 
 BRANCH="master"
 SETUP_BITRIX_DEBIAN_URL="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/$BRANCH/repositories/bitrix-gt/custom_from_install_full_environment_bitrix_setup_vanilla.sh"
@@ -26,17 +43,29 @@ FULL_PATH_MENU_FILE="$DEST_DIR_MENU/$DIR_NAME_MENU/menu.sh"
 
 apt update -y
 apt upgrade -y
-apt install -y wget curl ansible git ssl-cert libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
+apt install -y perl wget curl ansible git ssl-cert cron locales poppler-utils catdoc libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
+
+# Set locales
+locale-gen en_US.UTF-8
+
+bash -c 'echo "LANG=en_US.UTF-8" > /etc/default/locale'
+bash -c 'echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale'
+
+bash -c 'echo "LC_ALL=\"en_US.UTF-8\"" >> /etc/environment'
+
+source /etc/default/locale
+export LC_ALL="en_US.UTF-8"
 
 bash -c "$(curl -sL $SETUP_BITRIX_DEBIAN_URL)"
 
 source /root/run.sh
 
 set +x
+set -euo pipefail
 
 # set mysql root password
-root_pass=$(pwgen 24 1)
-site_user_password=$(pwgen 24 1)
+root_pass=$(generate_password 24)
+site_user_password=$(generate_password 24)
 
 mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${root_pass}');FLUSH PRIVILEGES;"
 
@@ -58,6 +87,8 @@ rm -rf $DEST_DIR_MENU/$DIR_NAME_MENU
 mv -f $DIR_NAME_MENU $DEST_DIR_MENU
 rm -rf "$DEST_DIR_MENU/DebianLikeBitrixVM"
 
+cd $DEST_DIR_MENU
+
 chmod -R +x $DEST_DIR_MENU/$DIR_NAME_MENU
 
 # Check script in .profile and add to .profile if not exist
@@ -71,11 +102,25 @@ fi
 INSTALL_MENU
 fi
 
+# Enable mod_remoteip
+a2enmod remoteip
+
+cat > /etc/apache2/mods-enabled/remoteip.conf <<CONFIG_APACHE2_REMOTEIP
+<IfModule remoteip_module>
+ RemoteIPHeader X-Forwarded-For
+ RemoteIPInternalProxy 127.0.0.1
+</IfModule>
+CONFIG_APACHE2_REMOTEIP
+
+# set PHP 8.2
+update-alternatives --set php /usr/bin/php8.2
+update-alternatives --set phar /usr/bin/phar8.2
+update-alternatives --set phar.phar /usr/bin/phar.phar8.2
+
+
 ln -s $FULL_PATH_MENU_FILE "$DEST_DIR_MENU/menu.sh"
 
 # Final actions
-
-cd $DEST_DIR_MENU
 
 source $DEST_DIR_MENU/$DIR_NAME_MENU/bash_scripts/config.sh
 

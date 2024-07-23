@@ -170,7 +170,7 @@ installPkg(){
   apt install -y  php8.2 php8.2-cli \
                   php8.2-common php8.2-gd php8.2-ldap \
                   php8.2-mbstring php8.2-mysql \
-                  php8.2-opcache php8.2-curl \
+                  php8.2-opcache php8.2-curl php-redis \
                   php-pear php8.2-apcu php-geoip \
                   php8.2-mcrypt php8.2-memcache \
                   php8.2-zip php8.2-pspell php8.2-xml \
@@ -323,8 +323,8 @@ deployInstaller() {
 
 installPkg
 
-PUSH_KEY=$(pwgen 24 1)
-DBPASS=$(pwgen 24 1)
+PUSH_KEY=$(generate_password 24)
+DBPASS=$(generate_password 24)
 
 deployConfig
 deployInstaller

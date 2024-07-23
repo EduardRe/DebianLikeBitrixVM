@@ -27,6 +27,7 @@ define('BX_UTF', true);
 define('BX_COMPRESSION_DISABLED', true);
 define('BX_DISABLE_INDEX_PAGE', true);
 define('BX_USE_MYSQLI', true);
+define('BX_TEMPORARY_FILES_DIRECTORY', '{{ bx_temporary_files_directory }}');
 
 if(!(defined('CHK_EVENT') && CHK_EVENT === true)){
    define('BX_CRONTAB_SUPPORT', true);

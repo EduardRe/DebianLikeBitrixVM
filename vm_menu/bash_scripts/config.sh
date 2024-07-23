@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 
 # General configs
-BS_VERSION_MENU="1.1.0"
+BS_VERSION_MENU="1.1.1"
 BS_PATH_SITES="/var/www/html"
 BS_DEFAULT_SITE_NAME="bx-site"
 BS_PATH_DEFAULT_SITE="$BS_PATH_SITES/$BS_DEFAULT_SITE_NAME"
@@ -10,6 +10,7 @@ BS_USER_SERVER_SITES="www-data"
 BS_GROUP_USER_SERVER_SITES="www-data"
 BS_PERMISSIONS_SITES_DIRS="0755"
 BS_PERMISSIONS_SITES_FILES="0644"
+BS_EXCLUDED_DIRS_SITES=("temp" "tmp" "test" ".ssh")
 BS_SITE_LINKS_RESOURCES=("local" "bitrix" "upload" "images")
 BS_DOWNLOAD_BITRIX_INSTALL_FILES_NEW_SITE=(
   "https://www.1c-bitrix.ru/download/scripts/bitrixsetup.php"
@@ -42,7 +43,10 @@ BS_PHP_INSTALL_TEMPLATE=(
   "phpVER#0.0-zip"
   "phpVER#0.0-pspell"
   "phpVER#0.0-xml"
+  "php-redis"
 )
+
+BS_DOWNLOAD_BITRIX_CONFIGS="https://dev.1c-bitrix.ru/docs/chm_files/debian.zip"
 
 # Ansible configs
 BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS="-i localhost, -c local"
@@ -55,6 +59,7 @@ BS_ANSIBLE_PB_ENABLE_OR_DISABLE_REDIRECT_HTTP_TO_HTTPS="enable_or_disable_redire
 BS_ANSIBLE_PB_INSTALL_NEW_FULL_ENVIRONMENT="install_new_full_environment.yaml"
 BS_ANSIBLE_PB_SETTINGS_SMTP_SITES="settings_smtp_sites.yaml"
 BS_ANSIBLE_PB_INSTALL_OR_DELETE_NETDATA="install_or_delete_netdata.yaml"
+BS_ANSIBLE_PB_DELETE_SITE="delete_site.yaml"
 
 # Data Base
 BS_MAX_CHAR_DB_NAME=10

@@ -2,15 +2,34 @@
 
 declare -A ARR_ALL_DIR_SITES_DATA
 
-list_sites(){
-  echo -e "   List of sites dirs: \n";
+generate_password() {
+    local length=$1
+    local specials='!@#$%^&*()-_=+[]|;:,.<>?/~'
+    local all_chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789${specials}"
 
-  mapfile -t ARR_ALL_DIR_SITES <<< "$(find "$BS_PATH_SITES" -maxdepth 1 -type d | grep -v "^$BS_PATH_SITES$" | sed 's|.*/||')"
+    local password=""
+    for i in $(seq 1 $length); do
+        local char=${all_chars:RANDOM % ${#all_chars}:1}
+        password+=$char
+    done
+
+    echo $password
+}
+
+list_sites(){
+  ARR_ALL_DIR_SITES_DATA=()
+  ARR_ALL_DIR_SITES=()
+  echo -e "   List of sites dirs: \n";
 
   # Функция для заполнения массива данными
   fill_array() {
     local index=0
     for tmp_dir in $(find "$BS_PATH_SITES" -maxdepth 1 -type d | grep -v "^$BS_PATH_SITES$" | sed 's|.*/||'); do
+      if [[ " ${BS_EXCLUDED_DIRS_SITES[@]} " =~ " $tmp_dir " ]]; then
+        continue
+      fi
+
+      ARR_ALL_DIR_SITES+=("$tmp_dir")
       ARR_ALL_DIR_SITES_DATA["${index}_dir"]="$tmp_dir"
       ARR_ALL_DIR_SITES_DATA[$index,is_default]="N"
       ARR_ALL_DIR_SITES_DATA[$index,is_https]="N"
@@ -75,19 +94,17 @@ press_any_key_to_return_menu(){
 }
 
 read_by_def(){
-    message=${1}   # сообщение
-    var_name=${2}  # имя устанавливаемой переменной
-    def_val=${3}   # значение по умолчанию
-    user_input=    # то, что ввел пользователь
+    local message=${1}   # сообщение
+    local var_name=${2}  # имя устанавливаемой переменной
+    local def_val=${3}   # значение по умолчанию
+    local user_input     # то, что ввел пользователь
 
-    read -r -p "$message" user_input;
+    read -r -p "$message" user_input
 
     if [[ -z "$user_input" ]]; then
-        eval "$var_name="$def_val
-        # var_name=$def_val;
+        printf -v "$var_name" "%s" "$def_val"
     else
-        eval "$var_name="$user_input
-        # var_name=$user_input;
+        printf -v "$var_name" "%s" "$user_input"
     fi
 }
 

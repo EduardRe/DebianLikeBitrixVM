@@ -50,6 +50,7 @@ main_menu(){
     echo "          9) Update server";
     echo "          R) Restart the server";
     echo "          P) Turn off the server";
+    echo "          DELETE_SITE) Delete a site";
     if [ -n "${update_menu_action}" ]; then
       echo -e "\e[33m             ${update_menu_action}\e[0m";
     fi
@@ -71,6 +72,7 @@ main_menu(){
      "9") update_server ;;
      "R") reboot_server ;;
      "P") power_off_server ;;
+     "DELETE_SITE") delete_site ;;
      "update_menu") update_menu;;
 
     0|z)  exit
@@ -117,7 +119,7 @@ add_site(){
     mode=''
     db_name=''
     db_user=''
-    db_password=$(pwgen $BS_CHAR_DB_PASSWORD 1)
+    db_password=$(generate_password $BS_CHAR_DB_PASSWORD)
     path_site_from_links=$BS_PATH_DEFAULT_SITE
 
     ssl_lets_encrypt="N";
@@ -521,4 +523,75 @@ function install_netdata() {
       * ) echo "   Please enter Y or N.";;
     esac
   done
+}
+
+function delete_site() {
+    clear;
+    list_sites;
+    echo -e "\n   Menu ->\e[33m Delete site:\e[0m\n";
+
+    site=''
+    db_name=''
+    db_user=''
+
+    read_by_def "   Enter site dir: " site $site;
+    while [[ -z "$site" ]] || ! [[ " ${ARR_ALL_DIR_SITES[*]} " =~ " $site " ]]; do
+            echo "   Incorrect site dir! Please enter site dir";
+            read_by_def "   Enter site dir: " site $site;
+    done
+
+    full_path_site="${BS_PATH_SITES}/${site}"
+    bx_path_site="${full_path_site}/bitrix"
+
+    type="full";
+    if [ -L "$bx_path_site" ]; then
+      type="link";
+    fi
+
+    echo -e "\n  \e[33m You entered ${type^^} site:\e[0m";
+
+    if [[ "$type" == "full" ]]; then
+
+        output=$(php "$dir_helpers/php/get_database_data.php" "$bx_path_site")
+
+        IFS=$'\n' read -r -d '' -a results <<< "$output"
+
+        db_name="${results[0]}"
+        db_user="${results[1]}"
+
+        echo -e "\n  \e[33m The site directory (${full_path_site}) will be permanently deleted!!!\e[0m";
+        echo -e "\n  \e[33m The database (${db_name}) and the user database (${db_user}) will be permanently deleted!!!\e[0m";
+        echo -e "\n  \e[33m Nginx and Apache configs will be renamed!!!\e[0m";
+    else
+
+        echo -e "\n  \e[33m The site directory (${full_path_site}) will be permanently deleted!!!\e[0m";
+        echo -e "\n  \e[33m Nginx and Apache configs will be renamed!!!\e[0m";
+    fi
+
+    echo -e "\n";
+
+    action_color="\e[33m PERMANENTLY DELETE THE SITE ${site}\e[0m"
+    while true; do
+      local code_rand=$((100000 + RANDOM % 899999))
+      read -r -p "  If you really want to$(echo -e "${action_color}"), enter the code: ${code_rand} or enter 0 to exit " answer
+      case $answer in
+        $code_rand ) break;;
+        0 ) return 0 ;;
+      esac
+    done
+
+    echo -e "\n";
+
+    if [[ "$site" == "$BS_DEFAULT_SITE_NAME" ]]; then
+        site="default";
+    fi
+
+    while true; do
+      read -r -p "   Do you really want to delete site? (Y/N): " answer
+      case $answer in
+        [Yy]* ) action_delete_site; break;;
+        [Nn]* ) break;;
+        * ) echo "   Please enter Y or N.";;
+      esac
+    done
 }

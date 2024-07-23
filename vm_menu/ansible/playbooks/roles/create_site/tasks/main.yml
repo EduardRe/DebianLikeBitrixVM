@@ -26,6 +26,11 @@
       when: item.stat.exists
       with_items: "{{ link_source.results }}"
 
+    - include_tasks: "tasks/change_owner_and_group_symbolic_links.yaml"
+      vars:
+        path_links: "{{ site_links_resources.split(',') }}"
+        full_path: "{{ path_sites }}/{{ domain }}"
+
     - name: Adding index.php file for a site
       template:
         src: "site_link_tpl/index.j2"
@@ -112,6 +117,15 @@
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
+
+    - name: Creating directory from bitrix temporary files
+      file:
+        state: directory
+        path: "{{ bx_temporary_files_directory }}"
+        owner: "{{ user_server_sites }}"
+        group: "{{ group_user_server_sites }}"
+        mode: "{{ permissions_sites_dirs }}"
+        recurse: yes
 
     - include_tasks: "tasks/add_cron_agents.yaml"
       vars:
