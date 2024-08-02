@@ -43,7 +43,7 @@ FULL_PATH_MENU_FILE="$DEST_DIR_MENU/$DIR_NAME_MENU/menu.sh"
 
 apt update -y
 apt upgrade -y
-apt install -y perl wget curl ansible git ssl-cert cron locales poppler-utils catdoc libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
+apt install -y perl wget curl ansible git ssl-cert cron locales locales-all poppler-utils catdoc libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
 
 # Set locales
 locale-gen en_US.UTF-8
