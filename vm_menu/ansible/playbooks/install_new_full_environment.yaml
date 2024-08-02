@@ -133,6 +133,31 @@
         dest: "{{ path_nginx_sites_enabled }}/default.conf"
         state: link
 
+    - name: Adding server block to rtc.conf
+      blockinfile:
+        path: "/etc/{{ service_nginx_name }}/sites-available/rtc.conf"
+        block: |
+         server {
+             listen 8893;
+             listen 8894 default_server ssl;
+             server_name _;
+
+             access_log off;
+             add_header Access-Control-Allow-Origin *;
+
+             # ssl settings
+             include ssl_conf/ssl_default.conf;
+
+             # Include error handlers
+             include conf.d/errors.conf;
+
+             # Include im subscrider handlers
+             include conf.d/im_subscrider.conf;
+
+             location /         { deny all; }
+         }
+        insertafter: EOF
+
 # Fix bug, dont start NGINX after reboot system
 
     - name: Creating directory for override.conf

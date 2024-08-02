@@ -91,7 +91,8 @@ menu_install_extensions(){
     clear;
 
     echo -e "\n          Menu -> Installing Extensions:\n";
-    echo "          1) Install/Delete netdata";
+    echo "          1) Install/Delete Sphinx";
+    echo "          2) Install/Delete Netdata";
     echo "          0) Return to main menu";
     echo -e "\n\n";
     echo -n "Enter command: "
@@ -99,7 +100,8 @@ menu_install_extensions(){
 
     case $comand in
 
-     "1") install_netdata ;;
+     "1") install_sphinx ;;
+     "2") install_netdata ;;
 
     0|z)  main_menu
     ;;
@@ -519,6 +521,26 @@ function install_netdata() {
     read -r -p "   Do you really want to$(echo -e "${action_color}")Netdata? (Y/N): " answer
     case $answer in
       [Yy]* ) action_install_or_delete_netdata; break;;
+      [Nn]* ) break;;
+      * ) echo "   Please enter Y or N.";;
+    esac
+  done
+}
+
+function install_sphinx() {
+  clear
+
+  action="INSTALL"
+  if dpkg-query -W -f='${Status}' sphinxsearch 2>/dev/null | grep -q "ok installed"; then
+      action="DELETE"
+  fi
+
+  action_color="\e[33m ${action} \e[0m"
+
+  while true; do
+    read -r -p "   Do you really want to$(echo -e "${action_color}")Sphinx? (Y/N): " answer
+    case $answer in
+      [Yy]* ) action_install_or_delete_sphinx; break;;
       [Nn]* ) break;;
       * ) echo "   Please enter Y or N.";;
     esac

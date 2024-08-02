@@ -57,6 +57,9 @@ fi
 INSTALL_MENU
 fi
 
+rm -f "/tmp/configs.tmp"
+rm -f "/tmp/new_version_menu.tmp"
+
 ln -s $FULL_PATH_MENU_FILE "$DEST_DIR_MENU/menu.sh"
 
 echo -e "\n\n";

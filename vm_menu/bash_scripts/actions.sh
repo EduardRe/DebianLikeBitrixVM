@@ -159,7 +159,6 @@ action_check_new_version_menu(){
 
 function action_update_menu() {
     bash <(curl -sL ${BS_URL_SCRIPT_UPDATE_MENU})
-    rm -f "/tmp/new_version_menu.tmp"
     exit;
 }
 
@@ -237,7 +236,7 @@ function action_install_or_delete_netdata() {
 
     pb=$(realpath "$dir/${BS_PATH_ANSIBLE_PLAYBOOKS}/${BS_ANSIBLE_PB_INSTALL_OR_DELETE_NETDATA}")
     ansible-playbook "${pb}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
-      -e "netdata_action=${action}
+      -e "netdata_action=${action} \
       service_nginx_name=${BS_SERVICE_NGINX_NAME}"
 
     if [ $action = "INSTALL" ]; then
@@ -247,6 +246,14 @@ function action_install_or_delete_netdata() {
       \e[33mLogin: ${login}\e[0m
       \e[33mPassword: ${password}\e[0m"
     fi
+
+    press_any_key_to_return_menu;
+}
+
+function action_install_or_delete_sphinx() {
+    pb=$(realpath "$dir/${BS_PATH_ANSIBLE_PLAYBOOKS}/${BS_ANSIBLE_PB_INSTALL_OR_DELETE_SPHINX}")
+    ansible-playbook "${pb}" $BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS \
+      -e "sphinx_action=${action}"
 
     press_any_key_to_return_menu;
 }

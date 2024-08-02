@@ -196,7 +196,7 @@ EOF
 }
 
 dplNginx(){
-	echo "127.0.0.1 push httpd" >> /etc/hosts
+	echo -e "\n127.0.0.1 push httpd\n" >> /etc/hosts
 	rm /etc/nginx/sites-enabled/default
 	ln -s /etc/nginx/sites-available/rtc.conf /etc/nginx/sites-enabled/rtc.conf
 	ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
@@ -278,7 +278,7 @@ table inet filter {
 		ip6 nexthdr ipv6-icmp limit rate 4/second accept
 		ct state { established, related } accept comment "Accept traffic originated from us"
 		tcp dport 22 accept comment "ssh"
-		tcp dport { 80, 443 } accept comment "web"
+		tcp dport { 80, 443, 8893, 8894 } accept comment "web"
 	}
 	chain forward {
 		type filter hook forward priority 0;
@@ -323,7 +323,7 @@ deployInstaller() {
 
 installPkg
 
-PUSH_KEY=$(generate_password 24)
+PUSH_KEY=$(pwgen 24 1)
 DBPASS=$(generate_password 24)
 
 deployConfig

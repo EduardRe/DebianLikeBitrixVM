@@ -1,0 +1,84 @@
+---
+# tasks file for install_or_delete_sphinx
+- block:
+    - name: Installing Sphinx
+      apt:
+        name: sphinxsearch=2.2.11-8+b1
+        state: present
+
+    - name: Copying config to /etc/sphinxsearch/sphinx.conf
+      copy:
+        src: "sphinxsearch/"
+        dest: "/etc/sphinxsearch/"
+
+    - name: Restarting sphinxsearch
+      systemd:
+        name: "sphinxsearch"
+        state: restarted
+
+    - name: Create the script file
+      copy:
+        dest: /usr/local/bin/create_dir_for_sphinx.sh
+        content: |
+         #!/bin/bash
+         mkdir -p /var/run/sphinxsearch
+         searchd
+        mode: '0755'
+
+    - name: Create systemd service file
+      copy:
+        dest: /etc/systemd/system/create_dir_for_sphinx.service
+        content: |
+         [Unit]
+         Description=Create directory for Sphinx
+         After=network.target
+
+         [Service]
+         ExecStart=/usr/local/bin/create_dir_for_sphinx.sh
+         Type=oneshot
+         RemainAfterExit=true
+
+         [Install]
+         WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd to apply changes
+      command: systemctl daemon-reload
+
+    - name: Enabling the service to run at startup
+      systemd:
+        name: create_dir_for_sphinx.service
+        enabled: yes
+        state: started
+
+    - name: Runing searchd command
+      shell: searchd
+
+  when: sphinx_action == 'INSTALL'
+
+- block:
+    - name: Deleting Sphinx
+      apt:
+        name: sphinxsearch
+        state: absent
+
+    - name: Stoping the systemd service
+      systemd:
+        name: create_dir_for_sphinx.service
+        state: stopped
+        enabled: no
+
+    - name: Remove the systemd service file
+      file:
+        path: /etc/systemd/system/create_dir_for_sphinx.service
+        state: absent
+
+    - name: Reload systemd to apply changes
+      command: systemctl daemon-reload
+
+    - name: Remove the script file
+      file:
+        path: /usr/local/bin/create_dir_for_sphinx.sh
+        state: absent
+
+  when: sphinx_action == 'DELETE'
