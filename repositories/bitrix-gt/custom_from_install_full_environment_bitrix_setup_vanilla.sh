@@ -196,7 +196,7 @@ EOF
 }
 
 dplNginx(){
-	echo "127.0.0.1 push httpd" >> /etc/hosts
+	echo -e "\n127.0.0.1 push httpd\n" >> /etc/hosts
 	rm /etc/nginx/sites-enabled/default
 	ln -s /etc/nginx/sites-available/rtc.conf /etc/nginx/sites-enabled/rtc.conf
 	ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
