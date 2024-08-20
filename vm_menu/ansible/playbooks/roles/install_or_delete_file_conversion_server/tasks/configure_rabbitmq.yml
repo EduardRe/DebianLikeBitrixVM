@@ -1,0 +1,95 @@
+---
+# install rabbitmq
+- name: Install rabbitmq-server
+  apt:
+    name: rabbitmq-server
+    state: present
+
+- name: Configure rabbitmq service
+  template:
+    src: rabbitmq.conf.j2
+    dest: /etc/rabbitmq/rabbitmq.conf
+    mode: '0644'
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: Configure rabbitmq environment
+  template:
+    src: rabbitmq-env.conf.j2
+    dest: /etc/rabbitmq/rabbitmq-env.conf
+    mode: '0644'
+    owner: rabbitmq
+    group: rabbitmq
+
+- name: Enabled rabbitmq-server
+  service:
+    name: rabbitmq-server
+    state: started
+    enabled: true
+
+- name: Restart rabbitmq-server
+  service:
+    name: rabbitmq-server
+    state: restarted
+
+- name: Enable rabbitmq_management plugin
+  community.rabbitmq.rabbitmq_plugin:
+    names: rabbitmq_management
+    state: enabled
+
+# - name: Create user root
+#  community.rabbitmq.rabbitmq_user:
+#    user: root
+#    password: "{{ bx_transformer_rabbitmq_root_password }}"
+#    vhost: /
+#    configure_priv: .*
+#    read_priv: .*
+#    write_priv: .*
+#    force: true
+#    update_password: always
+#    login_host: 127.0.0.1
+#    login_user: guest
+#    login_password: guest
+
+- name: Create user for bitrix
+  community.rabbitmq.rabbitmq_user:
+    user: "{{ bx_transformer_rabbitmq_user }}"
+    password: "{{ bx_transformer_rabbitmq_password }}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    force: true
+    update_password: always
+    tags: administrator
+    login_host: 127.0.0.1
+    login_user: guest
+    login_password: guest
+
+# - name: Delete guest
+#  community.rabbitmq.rabbitmq_user:
+#    user: guest
+#    state: absent
+
+- name: Determine PHP version
+  command: php -r "echo PHP_VERSION;"
+  register: php_version_output
+
+- name: Set PHP version fact
+  set_fact:
+    php_version: "{{ php_version_output.stdout.split('.')[0] }}.{{ php_version_output.stdout.split('.')[1] }}"
+
+- name: Install php package
+  apt:
+    name: "php{{ php_version }}-amqp"
+    state: present
+
+- name: Restart apache service
+  service:
+    name: "{{ service_apache_name }}"
+    state: restarted
+
+#- name: Restart php-fpm service
+#  service:
+#    name: "php{{ php_version }}-fpm"
+#    state: restarted

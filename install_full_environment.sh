@@ -78,7 +78,7 @@ password="${root_pass}"
 CONFIG_MYSQL_ROOT_MY_CNF
 
 # Clone directory vm_menu with repositories
-git clone --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
+git clone --branch=$BRANCH --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
 cd "$DEST_DIR_MENU/DebianLikeBitrixVM"
 git sparse-checkout set $DIR_NAME_MENU
 
@@ -179,9 +179,9 @@ ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/${BS_ANSIBLE_P
 
   bx_cron_agents_path_file_after_document_root=${BS_BX_CRON_AGENTS_PATH_FILE_AFTER_DOCUMENT_ROOT} \
   bx_cron_logs_path_dir=${BS_BX_CRON_LOGS_PATH_DIR} \
-  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \
-
-  push_key=${PUSH_KEY}"
+  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \ 
+  
+  push_server_config=${BS_PUSH_SERVER_CONFIG}"
 
 echo -e "\n\n";
 echo "Full environment installed";

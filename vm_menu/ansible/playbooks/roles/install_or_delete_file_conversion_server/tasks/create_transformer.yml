@@ -1,0 +1,24 @@
+---
+# Generate passwords
+- name: Generate passwords
+  include_tasks: configure_passwords.yml
+
+# Erlang
+- name: Install Erlang
+  include_tasks: configure_erlang.yml
+
+# RabbitMQ
+- name: Install RabbitMQ
+  include_tasks: configure_rabbitmq.yml
+
+# LibreOffice
+- name: Install LibreOffice
+  include_tasks: configure_libreoffice.yml
+
+# FFmpeg
+- name: Install FFmpeg
+  include_tasks: configure_ffmpeg.yml
+
+# Configure worker service
+- name: Configure worker service
+  include_tasks: configure_transformer_worker.yml

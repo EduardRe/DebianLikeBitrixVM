@@ -5,7 +5,7 @@
   become: yes
   gather_facts: no
   vars:
-    - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ domain }}/"
+    - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ db_name }}/"
   tasks:
     - include_tasks: "tasks/add_cron_agents.yaml"
       vars:
@@ -25,7 +25,7 @@
         recurse: yes
 
     - name: Setting timezone to UTC
-      ansible.builtin.command:
+      command:
         cmd: timedatectl set-timezone UTC
 
     - name: Restarting MySQL service
@@ -40,7 +40,7 @@
       no_log: true
 
     - name: Deleting files
-      ansible.builtin.file:
+      file:
         path: "{{ item }}"
         state: absent
       loop: "{{ dell_files }}"
@@ -90,6 +90,19 @@
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
+
+    - name: Generate crypto key
+      set_fact:
+        crypto_key: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=32') }}"
+
+    - name: Read push-server config file
+      slurp:
+        src: "{{ push_server_config }}"
+      register: push_config_content
+
+    - name: Extract SECURITY_KEY and set push_key variable
+      set_fact:
+        push_key: "{{ push_config_content['content'] | b64decode | regex_search('SECURITY_KEY=\"([^\"]+)\"', '\\1') | first }}"
 
     - name: Generating .settings.php file
       template:

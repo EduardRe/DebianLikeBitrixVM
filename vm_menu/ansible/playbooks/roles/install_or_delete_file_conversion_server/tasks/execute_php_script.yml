@@ -1,0 +1,48 @@
+---
+- name: Create main temporary directory
+  file:
+    path: "{{ bx_transformer_cache_directory }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ bx_transformer_bx_ansible_owner }}"
+    group: "{{ bx_transformer_bx_ansible_group }}"
+
+- name: Get the current timestamp
+  set_fact:
+    current_time: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+
+- name: Generate a random string
+  set_fact:
+    random_str: "{{ lookup('community.general.random_string', length=4, upper=False, special=false, numbers=false) }}"
+
+- name: Combine timestamp and random string to create unique id
+  set_fact:
+    bx_unique_id: "{{ current_time }}-{{ random_str }}"
+
+- name: Create site directory
+  file:
+    path: "{{ bx_transformer_cache_directory }}/{{ domain }}-{{ bx_unique_id }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ bx_transformer_bx_ansible_owner }}"
+    group: "{{ bx_transformer_bx_ansible_group }}"
+
+- name: Create php-script
+  template:
+    src: "{{ php_script }}.j2"
+    dest: "{{ bx_transformer_cache_directory }}/{{ domain }}-{{ bx_unique_id }}/{{ php_script }}"
+    owner: "{{ bx_transformer_bx_ansible_owner }}"
+    group: "{{ bx_transformer_bx_ansible_group }}"
+    mode: '0640'
+
+- name: Run php-script
+  command: php -f "{{ bx_transformer_cache_directory }}/{{ domain }}-{{ bx_unique_id }}/{{ php_script }}"
+  become: true
+  become_method: su
+  become_user: "{{ bx_transformer_bx_ansible_executer }}"
+  changed_when: false
+
+- name: Delete temporary directory
+  file:
+    path: "{{ bx_transformer_cache_directory }}/{{ domain }}-{{ bx_unique_id }}"
+    state: absent

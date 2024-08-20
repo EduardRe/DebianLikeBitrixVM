@@ -29,6 +29,7 @@
 - Возможность установки мониторинга Netdata
 - Информирование о выходе новой версии меню
 - Возможность обновить меню одной командой `update_menu`
+- Возможность установки Сервер конвертации файлов (отдельная благодарность [YogSottot](https://github.com/YogSottot))
 
 ## Краткий видео обзор:
 [![Watch the video](images/youtube.png)](https://www.youtube.com/watch?v=W8SrohS-l0o)

@@ -1,0 +1,14 @@
+---
+# defaults file for install_or_delete_file_conversion_server
+bx_transformer_libreoffice_path: /usr/bin/libreoffice
+bx_transformer_cache_directory: /tmp/transformer
+
+bx_transformer_rabbitmq_user: "{{ user_server_sites }}"
+
+bx_transformer_bx_ansible_owner: "{{ user_server_sites }}"
+bx_transformer_bx_ansible_group: "{{ group_user_server_sites }}"
+bx_transformer_bx_ansible_executer: "{{ user_server_sites }}"
+bx_transformer_domains:
+  - "localhost"
+  - "127.0.0.1"
+  - "{{ domain }}"

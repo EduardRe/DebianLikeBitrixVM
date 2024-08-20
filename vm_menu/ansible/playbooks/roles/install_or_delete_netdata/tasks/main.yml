@@ -18,41 +18,41 @@
 
 - block:
     - name: Find files deleting nginx configs
-      ansible.builtin.find:
+      find:
         paths: "{{ role_path }}/files/{{ service_nginx_name }}"
         file_type: file
         recurse: yes
       register: found_files
 
     - name: Deleting files in /etc/{{ service_nginx_name }}
-      ansible.builtin.file:
+      file:
         path: "/etc/nginx/{{ item.path | regex_replace('^' + role_path + '/files/'+ service_nginx_name +'/', '') }}"
         state: absent
       loop: "{{ found_files.files }}"
 
     - name: Stoping Netdata service
-      ansible.builtin.systemd:
+      systemd:
         name: netdata
         state: stopped
 
     - name: Disable Netdata service
-      ansible.builtin.systemd:
+      systemd:
         name: netdata
         enabled: no
 
     - name: Deleting Netdata package
-      ansible.builtin.apt:
+      apt:
         name: netdata
         state: absent
         purge: yes
 
     - name: Deleting Netdata directory
-      ansible.builtin.file:
+      file:
         path: /usr/sbin/netdata
         state: absent
 
     - name: Deleting Netdata configuration files
-      ansible.builtin.file:
+      file:
         path: /etc/netdata
         state: absent
         recurse: yes
@@ -60,14 +60,14 @@
 
 
     - name: Deleting Netdata logs
-      ansible.builtin.file:
+      file:
         path: /var/log/netdata
         state: absent
         recurse: yes
       ignore_errors: yes
 
     - name: Deleting Netdata user
-      ansible.builtin.user:
+      user:
         name: netdata
         state: absent
       ignore_errors: yes

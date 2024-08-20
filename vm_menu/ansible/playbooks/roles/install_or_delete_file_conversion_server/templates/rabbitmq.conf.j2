@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+# https://www.rabbitmq.com/configure.html
+# https://github.com/rabbitmq/rabbitmq-server/blob/v3.7.x/docs/rabbitmq.conf.example
+listeners.tcp.default               = 5672
+disk_free_limit.absolute            = 1GB
+
+# Customising TCP Listener (Socket) Configuration.
+##
+## Related doc guides:
+##
+## * http://rabbitmq.com/networking.html
+## * http://www.erlang.org/doc/man/inet.html#setopts-2
+##
+tcp_listen_options.backlog          = 104
+tcp_listen_options.nodelay          = true
+tcp_listen_options.exit_on_close    = false
+
+tcp_listen_options.keepalive        = true
+tcp_listen_options.send_timeout     = 15000
+tcp_listen_options.buffer           = 196608
+tcp_listen_options.sndbuf           = 196608
+tcp_listen_options.recbuf           = 196608
+
+## Resource Limits & Flow Control
+## ==============================
+##
+## Related doc guide: http://rabbitmq.com/memory.html.
+vm_memory_high_watermark.relative       = 0.4
+vm_memory_high_watermark_paging_ratio   = 0.6

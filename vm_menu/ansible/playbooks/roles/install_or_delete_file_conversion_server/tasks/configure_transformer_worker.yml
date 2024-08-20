@@ -1,0 +1,79 @@
+---
+- name: Execute php_script
+  include_tasks: execute_php_script.yml
+  vars:
+    php_script: transformers_install.php
+    php_server: "{{ cluster_web_server }}"
+
+- name: Create runing scripts
+  template:
+    src: init.d-transformer-workerd.j2
+    dest: /usr/local/bin/transformer-workerd
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create service
+  template:
+    src: transformer.service.j2
+    dest: /etc/systemd/system/transformer.service
+    mode: '0644'
+    owner: root
+    group: root
+
+# /var/run/transformer
+- name: Create directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ bx_transformer_bx_ansible_owner }}"
+    group: "{{ bx_transformer_bx_ansible_group }}"
+    mode: '0755'
+  loop:
+    - "/var/run/transformer"
+    - "/var/log/transformer"
+    - "/opt/cronscripts/"
+    - "/var/www/html/.cache"
+
+- name: Create tmpfiles.d config
+  template:
+    src: transformer.conf.j2
+    dest: /etc/tmpfiles.d/transformer.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Re-run systemd-tmpfiles
+  command: systemd-tmpfiles --create /etc/tmpfiles.d/transformer.conf
+  changed_when: false
+
+- name: Reload systemctl-daemon
+  systemd_service:
+    daemon_reload: true
+
+- name: Start service
+  service:
+    name: transformer.service
+    state: started
+    enabled: true
+
+- name: Create bx_cleanup.sh
+  copy:
+    src: bx_cleanup.sh
+    dest: /opt/cronscripts/bx_cleanup.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create crontab file
+  file:
+    path: "/etc/cron.d/bx_transformer"
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure Cleaner
+  lineinfile:
+    path: "/etc/cron.d/bx_transformer"
+    line: "10 * * * * {{ user_server_sites }} /opt/cronscripts/bx_cleanup.sh {{ full_path_site }}"

@@ -1,0 +1,60 @@
+#!/usr/bin/bash
+#
+#### BEGIN INIT INFO
+# Provides:          msender
+# Required-Start:    $local_fs $remote_fs $network $syslog
+# Required-Stop:     $local_fs $remote_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: starts transformer workers
+# Description:       starts transformer workers
+### END INIT INFO
+PROGRAM_DIR={{ full_path_site }}/bitrix/modules/transformercontroller/tools
+PROGRAM_NAME=sys_workerd.php
+CHILDREN=30
+
+LOG_DIR=/var/log/transformer
+
+PID_DIR=/var/run/transformer
+PID_FILE=/var/run/transformer/workerd.pid
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+start(){
+    status -p $PID_FILE && exit $?
+
+    echo -n $"Starting $PROGRAM_NAME: "
+
+    /usr/bin/php -f $PROGRAM_DIR/$PROGRAM_NAME $CHILDREN \
+        >> $LOG_DIR/workerd.log 2>&1 &
+    echo $! > $PID_FILE
+
+}
+
+stop() {
+    status -p $PID_FILE || exit $?
+
+    echo -n $"Stop $PROGRAM_NAME: "
+
+    killproc -p $PID_FILE
+}
+
+restart() {
+  stop
+  start
+}
+
+case "$1" in
+  "start") start ;;
+  "stop") stop ;;
+  "restart") restart ;;
+  *)
+  echo "Usage: $0 {start|stop|restart}"
+  exit 1
+  ;;
+esac
+
+exit 0
