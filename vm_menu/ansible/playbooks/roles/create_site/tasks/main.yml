@@ -126,6 +126,8 @@
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_dirs }}"
         recurse: yes
+      vars:
+        bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ db_name }}/"
 
     - include_tasks: "tasks/add_cron_agents.yaml"
       vars:

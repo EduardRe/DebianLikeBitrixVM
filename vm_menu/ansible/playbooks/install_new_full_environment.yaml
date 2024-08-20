@@ -5,7 +5,7 @@
   become: yes
   gather_facts: no
   vars:
-    - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ domain }}/"
+    - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ db_name }}/"
   tasks:
     - include_tasks: "tasks/add_cron_agents.yaml"
       vars:
