@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 
 # General configs
-BS_VERSION_MENU="1.1.2"
+BS_VERSION_MENU="1.2.0"
 BS_PATH_SITES="/var/www/html"
 BS_DEFAULT_SITE_NAME="bx-site"
 BS_PATH_DEFAULT_SITE="$BS_PATH_SITES/$BS_DEFAULT_SITE_NAME"
@@ -60,11 +60,12 @@ BS_ANSIBLE_PB_INSTALL_NEW_FULL_ENVIRONMENT="install_new_full_environment.yaml"
 BS_ANSIBLE_PB_SETTINGS_SMTP_SITES="settings_smtp_sites.yaml"
 BS_ANSIBLE_PB_INSTALL_OR_DELETE_NETDATA="install_or_delete_netdata.yaml"
 BS_ANSIBLE_PB_INSTALL_OR_DELETE_SPHINX="install_or_delete_sphinx.yaml"
+BS_ANSIBLE_PB_INSTALL_OR_DELETE_FILE_CONVERSION_SERVER="install_or_delete_file_conversion_server.yaml"
 BS_ANSIBLE_PB_DELETE_SITE="delete_site.yaml"
 
 # Data Base
-BS_MAX_CHAR_DB_NAME=10
-BS_MAX_CHAR_DB_USER=10
+BS_MAX_CHAR_DB_NAME=20
+BS_MAX_CHAR_DB_USER=20
 BS_CHAR_DB_PASSWORD=24
 
 # NGINX configs
@@ -93,7 +94,6 @@ BS_SMTP_FILE_USER_LOG="${BS_USER_SERVER_SITES}"
 BS_SMTP_FILE_GROUP_USER_LOG="${BS_GROUP_USER_SERVER_SITES}"
 BS_SMTP_PATH_WRAPP_SCRIPT_SH="/usr/local/bin/msmtp_wrapper.sh"
 
-
 # Check new version menu
 BS_BRANCH_UPDATE_MENU="master"
 BS_REPOSITORY_URL_FILE_VERSION="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/${BS_BRANCH_UPDATE_MENU}/vm_menu/bash_scripts/config.sh"
@@ -101,3 +101,8 @@ BS_URL_SCRIPT_UPDATE_MENU="https://raw.githubusercontent.com/EduardRe/DebianLike
 BS_REPOSITORY_URL="https://github.com/EduardRe/DebianLikeBitrixVM/"
 BS_CHECK_UPDATE_MENU_MINUTES=10
 
+# Mysql binary name
+BS_MYSQL_CMD="mysql"
+
+# Push-server configs
+BS_PUSH_SERVER_CONFIG=/etc/sysconfig/push-server-multi

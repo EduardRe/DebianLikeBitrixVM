@@ -92,7 +92,8 @@ menu_install_extensions(){
 
     echo -e "\n          Menu -> Installing Extensions:\n";
     echo "          1) Install/Delete Sphinx";
-    echo "          2) Install/Delete Netdata";
+    echo "          2) Install/Delete File Conversion Server (transformer)";
+    echo "          3) Install/Delete Netdata";
     echo "          0) Return to main menu";
     echo -e "\n\n";
     echo -n "Enter command: "
@@ -101,7 +102,8 @@ menu_install_extensions(){
     case $comand in
 
      "1") install_sphinx ;;
-     "2") install_netdata ;;
+     "2") install_file_conversion_server ;;
+     "3") install_netdata ;;
 
     0|z)  main_menu
     ;;
@@ -111,6 +113,40 @@ menu_install_extensions(){
 
     esac
     done
+}
+
+# Function to sanitize and limit the length of names
+sanitize_name() {
+    local input=$1 max_length=$2
+    local sanitized; sanitized=$(echo "$input" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl")
+    sanitized=$(cut -c-"$max_length" <<< "$sanitized")
+    sanitized=${sanitized%_}
+    printf "%s" "$sanitized"
+}
+
+# Function to check if a MySQL database exists
+db_exists() {
+    local db_name=$1
+    if ! $BS_MYSQL_CMD -e "USE ${db_name}" 2>/dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to check if a MySQL user exists
+user_exists() {
+    local db_user=$1
+    if ! $BS_MYSQL_CMD -e "SELECT 1 FROM mysql.user WHERE user = '${db_user}'" 2>/dev/null | grep -q 1; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to generate a random hash
+generate_random_hash() {
+    local hash_length=8
+    local hash; hash=$(openssl rand -hex "$hash_length")
+    printf "%s" "$hash"
 }
 
 add_site(){
@@ -140,12 +176,6 @@ add_site(){
        fi
     done
 
-    db_name=$(cut -c-$BS_MAX_CHAR_DB_NAME <<< $(echo "db_$domain" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl"))
-    db_name=${db_name%_}
-
-    db_user=$(cut -c-$BS_MAX_CHAR_DB_USER <<< $(echo "usr_$domain" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl"))
-    db_user=${db_user%_}
-
     ssl_lets_encrypt_email=$(echo "admin@$domain" | "${dir_helpers}/perl/translate.pl")
 
     while true; do
@@ -160,11 +190,59 @@ add_site(){
     case $mode in
       link )
         read_by_def "   Enter path to links site (default: $path_site_from_links): " path_site_from_links $path_site_from_links;
+        export db_name=$(php -r '$settings = include "'$path_site_from_links'/bitrix/.settings.php"; echo $settings["connections"]["value"]["default"]["database"];')
       ;;
       full )
-        read_by_def "   Enter database name: (default: $db_name): " db_name $db_name;
-        read_by_def "   Enter database user: (default: $db_user): " db_user $db_user;
-        read_by_def "   Enter database password: (default: $db_password): " db_password $db_password;
+          while true; do
+            db_name=$(sanitize_name "db_$domain" "$BS_MAX_CHAR_DB_NAME")
+            db_user=$(sanitize_name "usr_$domain" "$BS_MAX_CHAR_DB_USER")
+
+            if db_exists "$db_name" || user_exists "$db_user"; then
+                printf "Warning: Database '%s' or User '%s' already exists. Generating unique names...\n" "$db_name" "$db_user" >&2
+                local unique_hash; unique_hash=$(generate_random_hash)
+                db_name=$(sanitize_name "db_$domain_$unique_hash" "$BS_MAX_CHAR_DB_NAME")
+                db_user=$(sanitize_name "usr_$domain_$unique_hash" "$BS_MAX_CHAR_DB_USER")
+            fi
+
+            # Ensure generated names are unique
+            while db_exists "$db_name" || user_exists "$db_user"; do
+                printf "Error: Generated names '%s' or '%s' already exist. Regenerating...\n" "$db_name" "$db_user" >&2
+                unique_hash=$(generate_random_hash)
+                db_name=$(sanitize_name "db_$domain_$unique_hash" "$BS_MAX_CHAR_DB_NAME")
+                db_user=$(sanitize_name "usr_$domain_$unique_hash" "$BS_MAX_CHAR_DB_USER")
+            done
+
+            while true; do
+                read_by_def "   Enter database name: (default: $db_name): " db_name $db_name
+                db_name=$(sanitize_name "$db_name" "$BS_MAX_CHAR_DB_NAME")
+
+                if db_exists "$db_name"; then
+                    printf "Error: Database '%s' already exists.\n" "$db_name" >&2
+                    unique_hash=$(generate_random_hash)
+                    db_name=$(sanitize_name "db_$domain_$unique_hash" "$BS_MAX_CHAR_DB_NAME")
+                    continue
+                fi
+
+                break
+            done
+
+            while true; do
+                read_by_def "   Enter database user: (default: $db_user): " db_user $db_user
+                db_user=$(sanitize_name "$db_user" "$BS_MAX_CHAR_DB_USER")
+
+                if user_exists "$db_user"; then
+                    printf "Error: User '%s' already exists.\n" "$db_user" >&2
+                    unique_hash=$(generate_random_hash)
+                    db_user=$(sanitize_name "usr_$domain_$unique_hash" "$BS_MAX_CHAR_DB_USER")
+                    continue
+                fi
+
+                break
+            done
+
+            read_by_def "   Enter database password: (default: $db_password): " db_password $db_password
+            break
+        done
       ;;
     esac
 
@@ -494,6 +572,7 @@ function reboot_server() {
     esac
   done
 }
+
 function power_off_server() {
   clear
   while true; do
@@ -541,6 +620,46 @@ function install_sphinx() {
     read -r -p "   Do you really want to$(echo -e "${action_color}")Sphinx? (Y/N): " answer
     case $answer in
       [Yy]* ) action_install_or_delete_sphinx; break;;
+      [Nn]* ) break;;
+      * ) echo "   Please enter Y or N.";;
+    esac
+  done
+}
+
+function install_file_conversion_server() {
+  clear
+  domain='';
+  full_path_site="${BS_PATH_SITES}/${BS_DEFAULT_SITE_NAME}";
+  action="INSTALL";
+  if dpkg -l | grep -q rabbitmq-server; then
+      action="DELETE"
+  fi
+
+  if [ $action == "INSTALL" ]; then
+    list_sites;
+    echo -e "\n";
+
+    while [[ -z "$domain" ]]; do
+       read_by_def "   Enter site domain (example: example.com): " domain $domain;
+       if [ -z "$domain" ]; then
+        echo "   Incorrect site domain! Please enter another site domain";
+       fi
+    done
+
+    read_by_def "   Enter full path to site (default: $full_path_site): " full_path_site $full_path_site;
+
+    echo -e "\n   Entered data:\n"
+    echo "   Domain: $domain";
+    echo "   Full path site: $full_path_site";
+    echo -e "\n";
+  fi
+
+  action_color="\e[33m ${action} \e[0m"
+
+  while true; do
+    read -r -p "   Do you really want to$(echo -e "${action_color}")File Conversion Server (transformer)? (Y/N): " answer
+    case $answer in
+      [Yy]* ) action_install_or_delete_file_conversion_server; break;;
       [Nn]* ) break;;
       * ) echo "   Please enter Y or N.";;
     esac

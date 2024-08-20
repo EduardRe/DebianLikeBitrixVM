@@ -1,0 +1,40 @@
+<?
+
+if(!isset($argv[0]) || empty($argv[0]))
+{
+	die(json_encode(['error' => 'for console only']));
+}
+
+$address = "{{ domain }}";
+$docroot = "{{ full_path_site }}";
+
+define('NO_KEEP_STATISTIC', 'Y');
+define('NO_AGENT_STATISTIC','Y');
+define('NOT_CHECK_PERMISSIONS', true);
+define('DisableEventsCheck', true);
+define('NO_AGENT_CHECK', true);
+
+$_SERVER['DOCUMENT_ROOT'] = $docroot;
+
+if(!file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php'))
+{
+	die(json_encode(['error' => 'Bitrix core not found']));
+}
+/** @noinspection PhpIncludeInspection */
+require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php');
+
+$result = [];
+
+\Bitrix\Main\Config\Option::set('transformer', 'portal_url', '');
+\Bitrix\Main\Config\Option::set('transformer', 'transformer_controller_url', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'login', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'password', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'host', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'vhost', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'port', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'libreoffice_path', '');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'allowed_domains', '');
+
+$result['result'][] = 'Module transformercontroller deleted';
+
+die(\Bitrix\Main\Web\Json::encode($result));

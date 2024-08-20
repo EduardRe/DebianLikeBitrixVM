@@ -25,8 +25,8 @@ server {
     # Redirect to ssl if need
     if (-f {{ document_root }}/.htsecure) { rewrite ^(.*)$ https://$host$1 permanent; }
 
-    # BXTEMP - personal settings
-    include conf.d/bx_temp.conf;
+    # site personal settings
+    include custom_conf.d/site_settings/default/*.conf;
 
     # Include parameters common to all websites
     include conf.d/bitrix.conf;
@@ -71,8 +71,8 @@ server {
     index index.php;
     root "{{ document_root }}";
 
-    # BXTEMP - personal settings
-    include conf.d/bx_temp.conf;
+    # site personal settings
+    include custom_conf.d/site_settings/default/*.conf;
 
     # Include parameters common to all websites
     include conf.d/bitrix.conf;

@@ -1,0 +1,53 @@
+---
+# rabbitmq
+#- name: Delete user bx_transformer_rabbitmq_user
+#  community.rabbitmq.rabbitmq_user:
+#    user: "{{ bx_transformer_rabbitmq_user }}"
+#    state: absent
+
+- name: Disable rabbitmq-server
+  service:
+    name: rabbitmq-server
+    state: stopped
+    enabled: false
+
+# transformer service
+- name: Disable service
+  service:
+    name: transformer.service
+    state: stopped
+    enabled: false
+
+- name: Execute_php_script.yml
+  include_tasks: execute_php_script.yml
+  vars:
+    php_script: transformers_cleanup.php
+
+- name: Delete files and directories
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/var/run/transformer"
+    - "/var/log/transformer"
+    - "/etc/systemd/system/transformer.service"
+    - "/usr/local/bin/transformer-workerd"
+    - "/etc/tmpfiles.d/transformer.conf"
+    - "/etc/cron.d/bx_transformer"
+    - "/opt/cronscripts/bx_cleanup.sh"
+
+- name: Reload systemctl-daemon
+  systemd:
+    daemon_reload: true
+
+- name: Delete apps
+  apt:
+    name: "{{ item }}"
+    purge: true
+    autoremove: true
+    state: absent
+  loop:
+    - erlang
+    - ffmpeg
+    - libreoffice-nogui
+    - rabbitmq-server

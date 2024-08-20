@@ -1,0 +1,22 @@
+[Unit]
+Description=Transformer worker daemon
+After=network.target
+After=rabbitmq-server.service mysqld.service
+
+[Service]
+Type=forking
+RuntimeDirectory=transformer
+RuntimeDirectoryMode=0775
+ExecStart=/bin/bash /usr/local/bin/transformer-workerd start
+ExecStop=/bin/bash /usr/local/bin/transformer-workerd stop
+WorkingDirectory={{ full_path_site }}
+PrivateTmp=false
+User={{ bx_transformer_bx_ansible_owner }}
+Group={{ bx_transformer_bx_ansible_group }}
+KillSignal=SIGUSR1
+TimeoutStopSec=60
+KillMode=control-group
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

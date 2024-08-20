@@ -39,6 +39,19 @@
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
 
+    - name: Extract database name from .settings.php
+      shell: |
+        php -r '
+        $settings = include "{{ path_site_from_links }}/bitrix/.settings.php";
+        echo $settings["connections"]["value"]["default"]["database"];
+        '
+      register: db_name_result
+      changed_when: false
+
+    - name: Set db_name variable
+      set_fact:
+        db_name: "{{ db_name_result.stdout }}"
+
   when: mode == 'link'
 
 ############## FULL MODE ##############
@@ -84,7 +97,6 @@
       mysql_db:
         name: "{{ db_name }}"
         state: present
-      ignore_errors: yes
 
     - name: Creating database user
       mysql_user:
@@ -92,7 +104,6 @@
         password: "{{ db_password }}"
         priv: "{{ db_name }}.*:ALL"
         state: present
-      ignore_errors: yes
 
     - name: Creating directory bitrix/php_interface
       file:
@@ -109,6 +120,19 @@
         owner: "{{ user_server_sites }}"
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
+
+    - name: Generate crypto key
+      set_fact:
+        crypto_key: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=32') }}"
+
+    - name: Read push-server config file
+      slurp:
+        src: "{{ push_server_config }}"
+      register: push_config_content
+
+    - name: Extract SECURITY_KEY and set push_key variable
+      set_fact:
+        push_key: "{{ push_config_content['content'] | b64decode | regex_search('SECURITY_KEY=\"([^\"]+)\"', '\\1') | first }}"
 
     - name: Generating .settings.php file
       template:
@@ -147,6 +171,17 @@
     mode: "{{ permissions_sites_files }}"
 
 ############## NGINX ##############
+- name: Creating directory from bitrix site settings
+  file:
+    state: directory
+    path: "/etc/{{ service_nginx_name }}/custom_conf.d/site_settings/{{ domain }}"
+    recurse: yes
+
+- name: Adding Nginx configuration file site
+  template:
+    dest: "/etc/{{ service_nginx_name }}/custom_conf.d/site_settings/{{ domain }}/bx_temp.conf"
+    src: "nginx_conf/bx_temp.j2"
+
 - name: Copying ssl_default.conf to ssl_{{ domain }}.conf
   copy:
     src: "nginx_files/ssl_conf/ssl_default.conf"
@@ -185,4 +220,3 @@
   systemd:
     name: "{{ service_apache_name }}"
     state: restarted
-

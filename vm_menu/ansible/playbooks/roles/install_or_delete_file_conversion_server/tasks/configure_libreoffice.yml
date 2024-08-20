@@ -1,0 +1,6 @@
+---
+- name: Install libreoffice packages
+  apt:
+    name:
+      - libreoffice-nogui
+    state: present

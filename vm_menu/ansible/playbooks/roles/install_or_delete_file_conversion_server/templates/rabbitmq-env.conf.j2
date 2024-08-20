@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf
+RABBITMQ_MNESIA_BASE=/var/lib/rabbitmq/mnesia
+NODENAME=rabbit@{{ inventory_hostname }}
+RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="+A 128"
+{% if '.' in inventory_hostname %}
+USE_LONGNAME=true
+{% endif %}

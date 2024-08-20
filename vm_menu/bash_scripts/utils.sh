@@ -25,6 +25,11 @@ list_sites(){
   fill_array() {
     local index=0
     for tmp_dir in $(find "$BS_PATH_SITES" -maxdepth 1 -type d | grep -v "^$BS_PATH_SITES$" | sed 's|.*/||'); do
+
+      if [[ $tmp_dir =~ ^\. ]]; then
+        continue
+      fi
+
       if [[ " ${BS_EXCLUDED_DIRS_SITES[@]} " =~ " $tmp_dir " ]]; then
         continue
       fi

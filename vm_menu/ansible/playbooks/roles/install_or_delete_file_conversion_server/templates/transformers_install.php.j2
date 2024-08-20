@@ -1,0 +1,101 @@
+<?
+
+if(!isset($argv[0]) || empty($argv[0]))
+{
+	die(json_encode(['error' => 'for console only']));
+}
+
+$address = "{{ domain }}";
+$docroot = "{{ full_path_site }}";
+$redis_address = "{{ domain }}";
+$redis_user = "{{ bx_transformer_rabbitmq_user }}";
+$redis_password = "{{ bx_transformer_rabbitmq_password }}";
+$libre_path = "{{ bx_transformer_libreoffice_path }}";
+$domains = '[{% for domain in bx_transformer_domains %}"{{ domain }}"{% if not loop.last %},{% endif %}{% endfor %}]';
+
+
+define('NO_KEEP_STATISTIC', 'Y');
+define('NO_AGENT_STATISTIC','Y');
+define('NOT_CHECK_PERMISSIONS', true);
+define('DisableEventsCheck', true);
+define('NO_AGENT_CHECK', true);
+
+$_SERVER['DOCUMENT_ROOT'] = $docroot;
+
+if(!file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php'))
+{
+	die(json_encode(['error' => 'Bitrix core not found']));
+}
+/** @noinspection PhpIncludeInspection */
+require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php');
+
+$result = [];
+
+if(!\Bitrix\Main\ModuleManager::isModuleInstalled('transformer'))
+{
+	$moduleClass = new CModule();
+	$transformer = $moduleClass->CreateModuleObject("transformer");
+
+	if($transformer)
+	{
+		$transformer->InstallDB();
+		$transformer->InstallEvents();
+		$transformer->InstallFiles();
+		$result['result'][] = 'Module transformer is installed';
+	}
+	else
+	{
+		$result['error'] = 'Could not install module transformer';
+		return \Bitrix\Main\Web\Json::encode($result);
+	}
+}
+else
+{
+	$result['result'][] = 'Module transformer was installed before';
+}
+
+\Bitrix\Main\Config\Option::set('transformer', 'portal_url', 'http://'.$address);
+\Bitrix\Main\Config\Option::set('transformer', 'transformer_controller_url', 'http://'.$address.'/bitrix/tools/transformercontroller/add_queue.php');
+
+if(!\Bitrix\Main\ModuleManager::isModuleInstalled('transformercontroller'))
+{
+	$moduleClass = new CModule();
+	$transformercontroller = $moduleClass->CreateModuleObject("transformercontroller");
+
+	if($transformercontroller)
+	{
+		$transformercontroller->InstallDB();
+		$transformercontroller->InstallEvents();
+		$transformercontroller->InstallFiles();
+
+		$result['result'][] = 'Module transformercontroller installed';
+	}
+	else
+	{
+		$result['error'] = 'Could not install module transformercontroller';
+		return \Bitrix\Main\Web\Json::encode($result);
+	}
+}
+else
+{
+	$result['result'][] = 'Module transformercontroller was installed before';
+}
+\Bitrix\Main\Config\Option::set('transformercontroller', 'login', $redis_user);
+\Bitrix\Main\Config\Option::set('transformercontroller', 'password', $redis_password);
+\Bitrix\Main\Config\Option::set('transformercontroller', 'host', $address);
+\Bitrix\Main\Config\Option::set('transformercontroller', 'port', 5672);
+\Bitrix\Main\Config\Option::set('transformercontroller', 'vhost', '/');
+\Bitrix\Main\Config\Option::set('transformercontroller', 'libreoffice_path', $libre_path);
+\Bitrix\Main\Config\Option::set('transformercontroller', 'allowed_domains', $domains);
+
+$result['result'][] = 'Module transformercontroller configured';
+
+$result['rabbitMqCredentials'] = [
+	'login' => \Bitrix\Main\Config\Option::get('transformercontroller', 'login'),
+	'password' => \Bitrix\Main\Config\Option::get('transformercontroller', 'password'),
+	'host' => \Bitrix\Main\Config\Option::get('transformercontroller', 'host'),
+	'port' => \Bitrix\Main\Config\Option::get('transformercontroller', 'port'),
+	'vhost' => \Bitrix\Main\Config\Option::get('transformercontroller', 'vhost'),
+];
+
+die(\Bitrix\Main\Web\Json::encode($result));

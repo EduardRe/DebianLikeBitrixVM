@@ -1,0 +1,5 @@
+---
+- name: Install FFmpeg
+  apt:
+    name: ffmpeg
+    state: present

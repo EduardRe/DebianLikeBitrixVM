@@ -1,0 +1,9 @@
+---
+# tasks file for install_or_delete_file_conversion_server
+- name: Create transformer
+  include_tasks: create_transformer.yml
+  when: file_conversion_server_action == 'INSTALL'
+
+- name: Remove transformer
+  include_tasks: remove_transformer.yml
+  when: file_conversion_server_action == 'DELETE'
