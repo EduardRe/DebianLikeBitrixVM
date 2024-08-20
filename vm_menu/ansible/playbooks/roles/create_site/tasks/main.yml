@@ -147,6 +147,17 @@
     mode: "{{ permissions_sites_files }}"
 
 ############## NGINX ##############
+- name: Creating directory from bitrix site settings
+  file:
+    state: directory
+    path: "/etc/{{ service_nginx_name }}/custom_conf.d/site_settings/{{ domain }}"
+    recurse: yes
+
+- name: Adding Nginx configuration file site
+  template:
+    dest: "/etc/{{ service_nginx_name }}/custom_conf.d/site_settings/{{ domain }}/bx_temp.conf"
+    src: "nginx_conf/bx_temp.j2"
+
 - name: Copying ssl_default.conf to ssl_{{ domain }}.conf
   copy:
     src: "nginx_files/ssl_conf/ssl_default.conf"
