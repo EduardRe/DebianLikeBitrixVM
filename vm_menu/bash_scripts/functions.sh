@@ -113,6 +113,33 @@ menu_install_extensions(){
     done
 }
 
+# Function to sanitize and limit the length of names
+sanitize_name() {
+    local input=$1 max_length=$2
+    local sanitized; sanitized=$(echo "$input" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl")
+    sanitized=$(cut -c-"$max_length" <<< "$sanitized")
+    sanitized=${sanitized%_}
+    printf "%s" "$sanitized"
+}
+
+# Function to check if a MySQL database exists
+db_exists() {
+    local db_name=$1
+    if ! $BS_MYSQL_CMD -e "USE ${db_name}" 2>/dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to check if a MySQL user exists
+user_exists() {
+    local db_user=$1
+    if ! $BS_MYSQL_CMD -e "SELECT 1 FROM mysql.user WHERE user = '${db_user}'" 2>/dev/null | grep -q 1; then
+        return 1
+    fi
+    return 0
+}
+
 add_site(){
     clear;
     list_sites;
@@ -140,23 +167,6 @@ add_site(){
        fi
     done
 
-    generate_unique_name() {
-        local base_name="$1"
-        local max_length="$2"
-        local check_command="$3"
-        local unique_name="$base_name"
-
-        while $check_command "$unique_name" 2>/dev/null | grep -q "$unique_name"; do
-            random_suffix=$(head /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
-            unique_name="${base_name:0:$((max_length-7))}_${random_suffix}"
-        done
-
-        echo "$unique_name"
-    }
-
-    db_name=db$(generate_unique_name "$db_name" "$BS_MAX_CHAR_DB_NAME" "mysql -e 'SHOW DATABASES LIKE'")
-    db_user=usr$(generate_unique_name "$db_user" "$BS_MAX_CHAR_DB_USER" "mysql -e 'SELECT User FROM mysql.user WHERE User ='")
-
     ssl_lets_encrypt_email=$(echo "admin@$domain" | "${dir_helpers}/perl/translate.pl")
 
     while true; do
@@ -174,9 +184,24 @@ add_site(){
         export db_name=$(php -r '$settings = include "'$path_site_from_links'/bitrix/.settings.php"; echo $settings["connections"]["value"]["default"]["database"];')
       ;;
       full )
-        read_by_def "   Enter database name: (default: $db_name): " db_name $db_name;
-        read_by_def "   Enter database user: (default: $db_user): " db_user $db_user;
-        read_by_def "   Enter database password: (default: $db_password): " db_password $db_password;
+          db_name=$(sanitize_name "db_$domain" "$BS_MAX_CHAR_DB_NAME")
+          db_user=$(sanitize_name "usr_$domain" "$BS_MAX_CHAR_DB_USER")
+
+          if db_exists "$db_name"; then
+              printf "Error: Database '%s' already exists. Press any key to return to the menu.\n" "$db_name" >&2
+              read -r -n 1 -s
+              return
+          fi
+
+          if user_exists "$db_user"; then
+              printf "Error: User '%s' already exists. Press any key to return to the menu.\n" "$db_user" >&2
+              read -r -n 1 -s
+              return
+          fi
+
+          read_by_def "   Enter database name: (default: $db_name): " db_name $db_name;
+          read_by_def "   Enter database user: (default: $db_user): " db_user $db_user;
+          read_by_def "   Enter database password: (default: $db_password): " db_password $db_password;
       ;;
     esac
 
