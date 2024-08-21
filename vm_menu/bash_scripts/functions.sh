@@ -140,11 +140,22 @@ add_site(){
        fi
     done
 
-    db_name=$(cut -c-$BS_MAX_CHAR_DB_NAME <<< $(echo "db_$domain" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl"))
-    db_name=${db_name%_}
+    generate_unique_name() {
+        local base_name="$1"
+        local max_length="$2"
+        local check_command="$3"
+        local unique_name="$base_name"
 
-    db_user=$(cut -c-$BS_MAX_CHAR_DB_USER <<< $(echo "usr_$domain" | sed 's/-//g' | sed 's/\./_/g' | "${dir_helpers}/perl/translate.pl"))
-    db_user=${db_user%_}
+        while $check_command "$unique_name" 2>/dev/null | grep -q "$unique_name"; do
+            random_suffix=$(head /dev/urandom | tr -dc 'a-z0-9' | fold -w 6 | head -n 1)
+            unique_name="${base_name:0:$((max_length-7))}_${random_suffix}"
+        done
+
+        echo "$unique_name"
+    }
+
+    db_name=db$(generate_unique_name "$db_name" "$BS_MAX_CHAR_DB_NAME" "mysql -e 'SHOW DATABASES LIKE'")
+    db_user=usr$(generate_unique_name "$db_user" "$BS_MAX_CHAR_DB_USER" "mysql -e 'SELECT User FROM mysql.user WHERE User ='")
 
     ssl_lets_encrypt_email=$(echo "admin@$domain" | "${dir_helpers}/perl/translate.pl")
 
