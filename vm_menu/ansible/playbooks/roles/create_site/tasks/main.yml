@@ -39,6 +39,19 @@
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
 
+    - name: Extract database name from .settings.php
+      ansible.builtin.shell: |
+        php -r '
+        $settings = include "{{ path_site_from_links }}/bitrix/.settings.php";
+        echo $settings["connections"]["value"]["default"]["database"];
+        '
+      register: db_name_result
+      changed_when: false
+
+    - name: Set db_name variable
+      ansible.builtin.set_fact:
+        db_name: "{{ db_name_result.stdout }}"
+
   when: mode == 'link'
 
 ############## FULL MODE ##############
@@ -196,4 +209,3 @@
   systemd:
     name: "{{ service_apache_name }}"
     state: restarted
-

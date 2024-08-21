@@ -1,10 +1,10 @@
 # Settings BX_TEMPORARY_FILES_DIRECTORY
 location ~* ^/bx_tmp_download/ {
     internal;
-    rewrite /bx_tmp_download/(.+) /tmp/{{ domain }}/$1 last;
+    rewrite /bx_tmp_download/(.+) /tmp/{{ db_name }}/$1 last;
 }
 
-location ~* ^/tmp/{{ domain }}/ {
+location ~* ^/tmp/{{ db_name }}/ {
     internal;
-    root /usr/share/nginx/html;
+    root {{ path_sites }};
 }
