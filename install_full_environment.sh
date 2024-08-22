@@ -179,7 +179,9 @@ ansible-playbook "$DEST_DIR_MENU/$DIR_NAME_MENU/ansible/playbooks/${BS_ANSIBLE_P
 
   bx_cron_agents_path_file_after_document_root=${BS_BX_CRON_AGENTS_PATH_FILE_AFTER_DOCUMENT_ROOT} \
   bx_cron_logs_path_dir=${BS_BX_CRON_LOGS_PATH_DIR} \
-  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE}"
+  bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \ 
+  
+  push_server_config=${BS_PUSH_SERVER_CONFIG}"
 
 echo -e "\n\n";
 echo "Full environment installed";
