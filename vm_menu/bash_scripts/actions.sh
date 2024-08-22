@@ -52,7 +52,7 @@ action_create_site(){
   bx_cron_logs_path_dir=${BS_BX_CRON_LOGS_PATH_DIR} \
   bx_cron_logs_path_file=${BS_BX_CRON_LOGS_PATH_FILE} \
 
-  push_key=\${PUSH_KEY} \
+  push_server_config=${BS_PUSH_SERVER_CONFIG} \
 
   pb_redirect_http_to_https=${pb_redirect_http_to_https} \
   ansible_run_playbooks_params=${BS_ANSIBLE_RUN_PLAYBOOKS_PARAMS}"

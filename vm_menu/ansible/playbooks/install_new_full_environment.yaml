@@ -91,6 +91,19 @@
         group: "{{ group_user_server_sites }}"
         mode: "{{ permissions_sites_files }}"
 
+    - name: Generate crypto key
+      ansible.builtin.set_fact:
+        crypto_key: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=32') }}"
+
+    - name: Read push-server config file
+      ansible.builtin.slurp:
+        src: "{{ push_server_config }}"
+      register: push_config_content
+
+    - name: Extract SECURITY_KEY and set push_key variable
+      ansible.builtin.set_fact:
+        push_key: "{{ push_config_content['content'] | b64decode | regex_search('SECURITY_KEY=\"([^\"]+)\"', '\\1') | first }}"
+
     - name: Generating .settings.php file
       template:
         dest: "{{ document_root }}/bitrix/.settings.php"
