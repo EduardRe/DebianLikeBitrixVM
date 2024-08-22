@@ -63,8 +63,8 @@ BS_ANSIBLE_PB_INSTALL_OR_DELETE_SPHINX="install_or_delete_sphinx.yaml"
 BS_ANSIBLE_PB_DELETE_SITE="delete_site.yaml"
 
 # Data Base
-BS_MAX_CHAR_DB_NAME=10
-BS_MAX_CHAR_DB_USER=10
+BS_MAX_CHAR_DB_NAME=20
+BS_MAX_CHAR_DB_USER=20
 BS_CHAR_DB_PASSWORD=24
 
 # NGINX configs
@@ -101,3 +101,5 @@ BS_URL_SCRIPT_UPDATE_MENU="https://raw.githubusercontent.com/EduardRe/DebianLike
 BS_REPOSITORY_URL="https://github.com/EduardRe/DebianLikeBitrixVM/"
 BS_CHECK_UPDATE_MENU_MINUTES=10
 
+# Mysql binary name
+BS_MYSQL_CMD="mysql"
