@@ -160,6 +160,7 @@ add_site(){
     case $mode in
       link )
         read_by_def "   Enter path to links site (default: $path_site_from_links): " path_site_from_links $path_site_from_links;
+        export db_name=$(php -r '$settings = include "'$path_site_from_links'/bitrix/.settings.php"; echo $settings["connections"]["value"]["default"]["database"];')
       ;;
       full )
         read_by_def "   Enter database name: (default: $db_name): " db_name $db_name;
