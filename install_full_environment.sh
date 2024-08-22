@@ -78,7 +78,7 @@ password="${root_pass}"
 CONFIG_MYSQL_ROOT_MY_CNF
 
 # Clone directory vm_menu with repositories
-git clone --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
+git clone --branch=$BRANCH --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
 cd "$DEST_DIR_MENU/DebianLikeBitrixVM"
 git sparse-checkout set $DIR_NAME_MENU
 
