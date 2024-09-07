@@ -1,6 +1,7 @@
 #!/bin/bash
 
 declare -A ARR_ALL_DIR_SITES_DATA
+declare -A ARR_PARAMS
 
 generate_password() {
     local length=$1
@@ -159,4 +160,22 @@ function get_available_version_php() {
     done
 
     echo -e "\n"
+}
+
+function parse_params() {
+    ARR_PARAMS=()
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --*)
+                key="${1/--/}"
+                ARR_PARAMS["$key"]="$2"
+                shift
+                ;;
+            *)
+                echo "Unknown parameter passed: $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
 }
