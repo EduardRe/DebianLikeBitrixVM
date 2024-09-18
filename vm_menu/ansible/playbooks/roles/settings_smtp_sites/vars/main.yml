@@ -1,4 +1,4 @@
 ---
 # vars file for settings_smtp_sites
-log_path: "/var/www/html/msmtp_{{ account_name }}.log"
+log_path: "/home/bitrix/msmtp_{{ account_name }}.log"
 smtp_timeout: 45

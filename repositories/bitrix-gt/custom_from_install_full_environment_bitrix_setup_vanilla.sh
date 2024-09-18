@@ -299,7 +299,7 @@ deployConfig() {
   rsync -a --exclude=php.d ./debian/ /etc/
   rsync -a ./debian/php.d/ /etc/php/8.2/mods-available/
   rsync -a ./debian/php.d/ /etc/php/7.4/mods-available/
-	mkdir -p /var/www/html/bx-site
+	mkdir -p /home/bitrix/www
 
 	nfTabl
 	dplApache
@@ -312,13 +312,13 @@ deployConfig() {
 }
 
 deployInstaller() {
-	cd /var/www/html/bx-site
+	cd /home/bitrix/www
 	wget -q 'https://www.1c-bitrix.ru/download/scripts/bitrixsetup.php'
 	wget -q 'https://www.1c-bitrix.ru/download/scripts/restore.php'
 	mkdir -p bitrix/php_interface
 	dbconn > bitrix/php_interface/dbconn.php
 	settings > bitrix/.settings.php
-	chown -R www-data:www-data /var/www/html/bx-site
+	chown -R www-data:www-data /home/bitrix/www
 }
 
 installPkg

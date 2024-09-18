@@ -260,11 +260,11 @@ EOF
 
 cronagent(){
 	cat <<-EOF
-		*/5 * * * * ${1} /usr/bin/php /var/www/html/bitrix/modules/main/tools/cron_events.php >/dev/null 2>&1
+		*/5 * * * * ${1} /usr/bin/php /home/bitrix/bitrix/modules/main/tools/cron_events.php >/dev/null 2>&1
 	EOF
 }
 
-mkdir -p /var/www/html
+mkdir -p /home/bitrix
 
 if echo $os|grep -E '^CentOS[a-zA-Z ]*[7]{1}\.' > /dev/null
 then
@@ -294,7 +294,7 @@ then
 	chown mysql /var/run/mariadb
 	echo 'd /var/run/mariadb 0775 mysql -' > /etc/tmpfiles.d/mariadb.conf
 	[ $release -eq 7 ] && (firewall-cmd --zone=public --add-port=80/tcp --add-port=443/tcp --add-port=21/tcp --permanent && firewall-cmd --reload) || (iptables -I INPUT 1 -p tcp -m multiport --dports 21,80,443 -j ACCEPT && iptables-save > /etc/sysconfig/iptables)
-	cd /var/www/html
+	cd /home/bitrix
 	# wget -qO- http://rep.fvds.ru/cms/bitrixstable.tgz|tar -zxp
 	wget -qO- https://raw.githubusercontent.com/YogSottot/bitrix-gt/master/bitrixstable.tgz|tar -zxp
 	mv -f ./nginx/* /etc/nginx/
@@ -308,8 +308,8 @@ then
 	fpmsetup 'apache' > ${phpfpmcnf}
 	cronagent 'apache' > ${croncnf}
 	mysqlcnf > ${mycnf}
-	chown -R apache:apache /var/www/html
-	chmod 771 /var/www/html
+	chown -R apache:apache /home/bitrix
+	chmod 771 /home/bitrix
   systemctl start mysql
 	mysql -e "create database bitrix;create user bitrix@localhost;grant all on bitrix.* to bitrix@localhost;set password for bitrix@localhost = PASSWORD('${mypwddb}')"
 
@@ -359,7 +359,7 @@ then
 	mariadb -e "create database bitrix;create user bitrix@localhost;grant all on bitrix.* to bitrix@localhost;set password for bitrix@localhost = PASSWORD('${mypwddb}')"
 	nfTabl
 
-	cd /var/www/html || exit
+	cd /home/bitrix || exit
 	# wget -qO- http://rep.fvds.ru/cms/bitrixstable.tgz|tar -zxp
 	wget -qO- https://raw.githubusercontent.com/YogSottot/bitrix-gt/master/bitrixstable.tgz|tar -zxp
 	mkdir -p bitrix/php_interface
@@ -386,7 +386,7 @@ then
 	fpmsetup 'www-data' > ${phpfpmcnf}
 	cronagent 'www-data' > ${croncnf}
 	mysqlcnf > ${mycnf}
-	chown -R www-data:www-data /var/www/html
+	chown -R www-data:www-data /home/bitrix
 	ln -s /var/lib/php/sessions /var/lib/php/session
 
 	envver=$(wget -qO- 'https://repos.1c-bitrix.ru/yum/SRPMS/' | grep -Eo 'bitrix-env-[0-9]\.[^src\.rpm]*'|sort -n|tail -n 1 | sed 's/bitrix-env-//;s/-/./')

@@ -33,7 +33,7 @@
     - "/var/run/transformer"
     - "/var/log/transformer"
     - "/opt/cronscripts/"
-    - "/var/www/html/.cache"
+    - "/home/bitrix/.cache"
 
 - name: Create tmpfiles.d config
   template:

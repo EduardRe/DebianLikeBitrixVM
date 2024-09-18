@@ -27,7 +27,7 @@ TR_DIR=${2:-transformercontroller}
 if [[ -z "$SITE_DIR" ]]; then
     echo "Usage: $PROGNAME site_dir"
     echo "Ex."
-    echo "$PROGNAME /var/www/html/bx_site"
+    echo "$PROGNAME /home/bitrix/bx_site"
     echo
     exit 1
 fi

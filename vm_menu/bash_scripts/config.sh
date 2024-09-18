@@ -3,7 +3,7 @@
 
 # General configs
 BS_VERSION_MENU="1.2.0"
-BS_PATH_SITES="/var/www/html"
+BS_PATH_SITES="/home/bitrix"
 BS_DEFAULT_SITE_NAME="bx-site"
 BS_PATH_DEFAULT_SITE="$BS_PATH_SITES/$BS_DEFAULT_SITE_NAME"
 BS_USER_SERVER_SITES="www-data"
