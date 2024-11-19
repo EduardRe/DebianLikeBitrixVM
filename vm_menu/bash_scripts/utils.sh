@@ -25,7 +25,7 @@ list_sites(){
   # Функция для заполнения массива данными
   fill_array() {
     local index=0
-    for tmp_dir in $(find "$BS_PATH_SITES" -maxdepth 1 -type d | grep -v "^$BS_PATH_SITES$" | sed 's|.*/||'); do
+    for tmp_dir in $(find "$BS_PATH_SITES" -maxdepth 1 -type d -o -type l | grep -v "^$BS_PATH_SITES$" | sed 's|.*/||'); do
 
       if [[ $tmp_dir =~ ^\. ]]; then
         continue
