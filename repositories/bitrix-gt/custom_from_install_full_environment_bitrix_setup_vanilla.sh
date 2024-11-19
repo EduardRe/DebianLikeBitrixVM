@@ -205,18 +205,28 @@ dplNginx(){
 	systemctl start nginx
 }
 
-dplRedis(){
-		echo -e "pidfile /run/redis/redis-server.pid\ndir /var/lib/redis" >> /etc/redis/redis.conf
-		echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
-		sysctl vm.overcommit_memory=1
-	  usermod -g www-data redis
-    chown root:www-data /etc/redis/ /var/log/redis/
-    [[ ! -d /etc/systemd/system/redis.service.d ]] && mkdir /etc/systemd/system/redis.service.d
-    echo -e '[Service]\nGroup=www-data\nPIDFile=/run/redis/redis-server.pid' > /etc/systemd/system/redis.service.d/custom.conf
-    systemctl daemon-reload
-    systemctl stop redis
-    systemctl enable --now redis || systemctl enable --now redis-server
-    systemctl start redis
+dplRedis() {
+  echo -e "pidfile /run/redis/redis-server.pid\ndir /var/lib/redis" >> /etc/redis/redis.conf
+
+  # Проверяем текущее значение vm.overcommit_memory
+  current_value=$(sysctl -n vm.overcommit_memory)
+
+  # Если значение не равно 1, то изменяем его
+  if [ "$current_value" -ne 1 ]; then
+    echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
+    sysctl -w vm.overcommit_memory=1
+  fi
+
+  usermod -g www-data redis
+  chown root:www-data /etc/redis/ /var/log/redis/
+
+  [[ ! -d /etc/systemd/system/redis.service.d ]] && mkdir /etc/systemd/system/redis.service.d
+  echo -e '[Service]\nGroup=www-data\nPIDFile=/run/redis/redis-server.pid' > /etc/systemd/system/redis.service.d/custom.conf
+
+  systemctl daemon-reload
+  systemctl stop redis
+  systemctl enable --now redis || systemctl enable --now redis-server
+  systemctl start redis
 }
 
 dplPush(){
