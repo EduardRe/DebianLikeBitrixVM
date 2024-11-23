@@ -1,0 +1,4 @@
+<?php
+$this->queryExecute("SET sql_mode=''");
+$this->queryExecute("SET NAMES '{{ db_character_set_server }}'");
+$this->queryExecute("SET collation_connection = '{{ db_collation_server }}'");
