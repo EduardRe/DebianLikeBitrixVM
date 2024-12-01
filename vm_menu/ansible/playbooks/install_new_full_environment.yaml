@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   become: yes
-  gather_facts: no
+  gather_facts: yes
   vars:
     - bx_temporary_files_directory: "{{ path_sites }}/tmp/{{ db_name }}/"
   tasks:
@@ -130,6 +130,25 @@
         mode: "{{ permissions_sites_files }}"
 
     ############## NGINX ##############
+    - name: Add nginx modules repo key
+      get_url:
+        url: https://yogsottot.github.io/ppa/yogsottot.asc
+        dest: /etc/apt/keyrings/yogsottot.asc
+        mode: "0644"
+        owner: root
+        group: root
+
+    - name: Add nginx modules repo.
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/yogsottot.asc] https://yogsottot.github.io/ppa/debian {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Update apt caches after repo is added.
+      apt:
+        name:
+          - libnginx-mod-http-zip
+          - libnginx-mod-http-zstd
+
     - name: Copying nginx_files directory to /etc/{{ service_nginx_name }}
       copy:
         src: "roles/create_site/files/nginx_files/"
