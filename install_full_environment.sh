@@ -117,6 +117,9 @@ update-alternatives --set php /usr/bin/php8.2
 update-alternatives --set phar /usr/bin/phar8.2
 update-alternatives --set phar.phar /usr/bin/phar.phar8.2
 
+# fix bugs
+a2dismod --force negotiation filter
+
 
 ln -s $FULL_PATH_MENU_FILE "$DEST_DIR_MENU/menu.sh"
 
