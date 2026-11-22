@@ -119,49 +119,19 @@ action_emulate_bitrix_vm(){
   press_any_key_to_return_menu;
 }
 
-action_check_new_version_menu(){
-  local file_temp_config="/tmp/configs.tmp"
-  local file_new_version="/tmp/new_version_menu.tmp"
-
-  if [[ -z ${BS_REPOSITORY_URL_FILE_VERSION} ]] || [[ -z ${BS_REPOSITORY_URL} ]] || [[ -z ${BS_CHECK_UPDATE_MENU_MINUTES} ]]; then
-      rm -f "${file_new_version}"
-      return;
-  fi
-
-  if [ -f "${file_temp_config}" ]; then
-    current_time=$(date +%s)
-    file_time=$(stat -c %Y "${file_temp_config}")
-    diff=$((current_time - file_time))
-    if [ ! $diff -lt $(($BS_CHECK_UPDATE_MENU_MINUTES * 60)) ]; then
-      curl -m 5 -o "${file_temp_config}" -s ${BS_REPOSITORY_URL_FILE_VERSION} 2>/dev/null
-    fi
-    else
-      curl -m 5 -o "${file_temp_config}" -s ${BS_REPOSITORY_URL_FILE_VERSION} 2>/dev/null
-  fi
-
-  if [ ! -f ${file_temp_config} ]; then
-    rm -f "${file_new_version}"
-    return;
-  fi
-
-  new_version=$(grep 'BS_VERSION_MENU' ${file_temp_config} | awk -F'=' '{ print $2 }' | tr -d '"')
-
-  if [[ -z ${new_version} ]]; then
-    rm -f "${file_new_version}"
-    return;
-  fi
-
-  if [[ ${new_version} == ${BS_VERSION_MENU} ]]; then
-    rm -f "${file_new_version}"
-    return;
-  fi
-
-  echo "${new_version}" > $file_new_version
-}
-
 function action_update_menu() {
-    bash <(curl -sL ${BS_URL_SCRIPT_UPDATE_MENU})
-    exit;
+    local script
+    script=$(mktemp) || return 1
+    if curl --fail --silent --show-error --location --connect-timeout 5 --max-time 30 \
+      --output "$script" "$BS_URL_SCRIPT_UPDATE_MENU" && [[ -s "$script" ]] &&
+      bash "$script" "$BS_BRANCH_UPDATE_MENU"; then
+        rm -f -- "$script"
+        exit 0
+    fi
+    rm -f -- "$script"
+    echo "Could not complete the menu update."
+    press_any_key_to_return_menu
+    return 1
 }
 
 function action_update_server() {

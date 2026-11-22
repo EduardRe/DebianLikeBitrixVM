@@ -1,0 +1,56 @@
+name: Публикация релиза
+run-name: Релиз ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+      - '[0-9]+.x'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  publish:
+    name: Создать релиз GitHub
+    if: github.event.deleted == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получить файлы из коммита
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Подготовить заголовок и описание
+        env:
+          RELEASE_BRANCH: ${{ github.ref_name }}
+        run: python3 .github/scripts/prepare_release.py "$RELEASE_BRANCH" "$RUNNER_TEMP/dlbv-release"
+
+      - name: Опубликовать релиз
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_dir="$RUNNER_TEMP/dlbv-release"
+          read -r tag < "$release_dir/tag.txt"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Релиз $tag уже существует."
+            exit 0
+          fi
+
+          tag_ref="refs/tags/$tag"
+          tag_commit=$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+            ls-remote --tags origin "$tag_ref" "$tag_ref^{}" |
+            awk -v ref="$tag_ref" '$2 == ref { sha = $1 } $2 == ref "^{}" { commit = $1 } END { print (commit ? commit : sha) }')
+          if [[ -n "$tag_commit" && "$tag_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::Тег $tag уже указывает на другой коммит."
+            exit 1
+          fi
+
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$(cat "$release_dir/title.txt")" \
+            --notes-file "$release_dir/notes.md"

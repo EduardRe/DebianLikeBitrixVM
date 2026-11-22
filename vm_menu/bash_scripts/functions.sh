@@ -26,8 +26,8 @@ main_menu(){
 
     local msg_new_version_menu="";
     local update_menu_action="";
-    if [ -f "/tmp/new_version_menu.tmp" ]; then
-      local nv=$(cat /tmp/new_version_menu.tmp)
+    local nv
+    if nv=$(available_menu_update); then
       msg_new_version_menu="\e[33m          New version of Debian Like BitrixVM
           (your version ${BS_VERSION_MENU} -> new version ${nv}) please follow the link
           \e]8;;${BS_REPOSITORY_URL}\a${BS_REPOSITORY_URL}\e]8;;\a or enter \"update_menu\" to update your menu\n\e[0m"
@@ -401,8 +401,8 @@ enable_or_disable_redirect_http_to_https(){
 function update_menu(){
     clear;
 
-    if [ -z "${BS_URL_SCRIPT_UPDATE_MENU}" ]; then
-      echo -e "Variable BS_URL_SCRIPT_UPDATE_MENU is not defined\n";
+    if [ -z "${BS_BRANCH_UPDATE_MENU}" ]; then
+      echo -e "Menu updates are unavailable for this Debian release and installed menu version.\n";
       press_any_key_to_return_menu;
       return 0;
     fi

@@ -1,74 +1,93 @@
-#!/bin/bash
-set +x
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Update menu
-# MASTER branch
+fail() {
+  printf 'Menu update failed: %s\n' "$*" >&2
+  exit 1
+}
 
-# use curl
-# bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/update_menu.sh)
+read_menu_version() {
+  sed -nE 's/^BS_VERSION_MENU="([^"]*)"[[:space:]]*$/\1/p' "$1"
+}
 
-# use wget
-# bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/update_menu.sh)
+update_menu() {
+  local root=$1 os_release=$2 expected_branch=${3:-}
+  local menu="$root/vm_menu" link="$root/menu.sh"
+  local installed candidate_version branch work backup= candidate file
+  local ID= VERSION_ID=
 
-cat > /root/temp_update_menu.sh <<\END
-#!/bin/bash
+  [[ -r "$os_release" ]] || fail "Cannot read $os_release."
+  source "$os_release"
+  case "$ID:$VERSION_ID" in
+    debian:12|debian:13) branch="$VERSION_ID.x" ;;
+    *) fail "Unsupported system: $ID $VERSION_ID." ;;
+  esac
+  [[ -z "$expected_branch" || "$expected_branch" == "$branch" ]] ||
+    fail "Requested branch $expected_branch does not match Debian $VERSION_ID."
 
-REPO_URL="https://github.com/EduardRe/DebianLikeBitrixVM.git"
+  exec 9>"$root/.dlbv-menu-update.lock"
+  flock -n 9 || fail "Another menu update is already running."
+  [[ -d "$menu" && ! -L "$menu" && -r "$menu/bash_scripts/config.sh" ]] ||
+    fail "Cannot find the installed menu at $menu."
+  installed=$(read_menu_version "$menu/bash_scripts/config.sh")
+  local version_pattern="^${VERSION_ID}\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$"
+  if [[ "$installed" != 1.2.0 && "$installed" != 1.2.1 && ! "$installed" =~ $version_pattern ]]; then
+    fail "Installed version does not belong to $branch. A change of Debian release requires a separate migration."
+  fi
+  if [[ -L "$link" ]]; then
+    [[ "$(readlink -f -- "$link")" == "$menu/menu.sh" ]] || fail "Unexpected menu link: $link."
+  elif [[ -e "$link" ]]; then
+    fail "Cannot create the menu link: $link already exists."
+  fi
 
-DIR_NAME_MENU="vm_menu"
-DEST_DIR_MENU="/root"
+  work=$(mktemp -d -- "$root/.dlbv-menu-update.XXXXXXXX")
+  # Keep the cleanup trap inside the staging and replacement step.
+  (
+    cleanup() {
+      local result=$?
+      if [[ -n "$backup" && -d "$backup/vm_menu" && ! -e "$menu" ]]; then
+        if ! mv -T -- "$backup/vm_menu" "$menu"; then
+          printf 'Restore the previous menu from %s/vm_menu\n' "$backup" >&2
+          result=1
+        fi
+      fi
+      rm -rf -- "$work"
+      exit "$result"
+    }
+    trap cleanup EXIT
+    trap 'exit 1' HUP INT TERM
+    git clone --quiet --depth 1 --single-branch --branch "$branch" --sparse --filter=blob:none \
+      https://github.com/EduardRe/DebianLikeBitrixVM.git "$work/repo" ||
+      fail "Could not download $branch. The installed menu is still available."
+    git -C "$work/repo" sparse-checkout set vm_menu || fail "Could not read the menu from $branch."
+    candidate="$work/repo/vm_menu"
+    for file in menu.sh bash_scripts/{config,functions,actions,updates,utils}.sh \
+      helpers/perl/translate.pl helpers/php/get_database_data.php ansible/playbooks/create_site.yaml; do
+      [[ -s "$candidate/$file" ]] || fail "Missing file in $branch: $file."
+    done
+    candidate_version=$(read_menu_version "$candidate/bash_scripts/config.sh")
+    [[ "$candidate_version" =~ $version_pattern ]] || fail "Invalid menu version in $branch."
+    if ! dpkg --compare-versions "$candidate_version" gt "$installed"; then
+      printf 'Menu is up to date. Installed %s, available %s in %s.\n' "$installed" "$candidate_version" "$branch"
+      exit 0
+    fi
+    while IFS= read -r -d '' file; do
+      bash -n "$file" || fail "Invalid Bash script in $branch: ${file#"$candidate/"}."
+    done < <(find "$candidate" -type f -name '*.sh' -print0)
+    chmod a+x "$candidate/menu.sh" "$candidate/helpers/perl/translate.pl"
+    [[ -L "$link" ]] || ln -s -- "$menu/menu.sh" "$link"
 
-FULL_PATH_MENU_FILE="$DEST_DIR_MENU/$DIR_NAME_MENU/menu.sh"
+    install -d -m 0700 -- "$root/backup_vm_menu"
+    backup=$(mktemp -d -- "$root/backup_vm_menu/$(date '+%d.%m.%Y %H:%M:%S').XXXXXXXX")
+    mv -T -- "$menu" "$backup/vm_menu"
+    mv -T -- "$candidate" "$menu"
+    printf 'Menu updated from %s to %s (%s). Backup directory: %s\n' \
+      "$installed" "$candidate_version" "$branch" "$backup"
+  )
+}
 
-DEST_DIR_BACKUP_MENU="$DEST_DIR_MENU/backup_vm_menu"
-
-apt update -y
-apt upgrade -y
-apt install -y git
-
-# Backup vm_menu
-current_date=$(date "+%d.%m.%Y %H:%M:%S")
-full_path_backup_menu="$DEST_DIR_BACKUP_MENU/$current_date"
-
-mkdir -p "${full_path_backup_menu}"
-mv -f "${DEST_DIR_MENU}/${DIR_NAME_MENU}" "${full_path_backup_menu}"
-
-
-# Clone directory vm_menu with repositories
-git clone --depth 1 --filter=blob:none --sparse $REPO_URL "$DEST_DIR_MENU/DebianLikeBitrixVM"
-cd "$DEST_DIR_MENU/DebianLikeBitrixVM"
-git sparse-checkout set $DIR_NAME_MENU
-
-# Move vm_menu in /root and clean
-rm -rf $DEST_DIR_MENU/$DIR_NAME_MENU
-mv -f $DIR_NAME_MENU $DEST_DIR_MENU
-rm -rf "$DEST_DIR_MENU/DebianLikeBitrixVM"
-
-chmod -R +x $DEST_DIR_MENU/$DIR_NAME_MENU
-
-# Check script in .profile and add to .profile if not exist
-if ! grep -qF "$FULL_PATH_MENU_FILE" /root/.profile; then
-  cat << INSTALL_MENU >> /root/.profile
-
-if [ -n "\$SSH_CONNECTION" ]; then
-  $FULL_PATH_MENU_FILE
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  [[ $EUID -eq 0 ]] || fail "Run this script as root."
+  [[ $# -le 1 ]] || fail "Expected at most one update branch."
+  update_menu /root /etc/os-release "${1:-}"
 fi
-
-INSTALL_MENU
-fi
-
-rm -f "/tmp/configs.tmp"
-rm -f "/tmp/new_version_menu.tmp"
-
-ln -s $FULL_PATH_MENU_FILE "$DEST_DIR_MENU/menu.sh"
-
-echo -e "\n\n";
-echo "Menu updated! Backup directory old menu: $full_path_backup_menu";
-echo -e "\n";
-
-END
-
-bash /root/temp_update_menu.sh
-
-rm /root/temp_update_menu.sh
-

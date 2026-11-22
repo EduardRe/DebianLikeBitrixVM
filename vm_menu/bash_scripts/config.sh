@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 
 # General configs
-BS_VERSION_MENU="1.2.0"
+BS_VERSION_MENU="1.2.1"
 BS_PATH_SITES="/var/www/html"
 BS_DEFAULT_SITE_NAME="bx-site"
 BS_PATH_DEFAULT_SITE="$BS_PATH_SITES/$BS_DEFAULT_SITE_NAME"
@@ -97,9 +97,6 @@ BS_SMTP_FILE_GROUP_USER_LOG="${BS_GROUP_USER_SERVER_SITES}"
 BS_SMTP_PATH_WRAPP_SCRIPT_SH="/usr/local/bin/msmtp_wrapper.sh"
 
 # Check new version menu
-BS_BRANCH_UPDATE_MENU="master"
-BS_REPOSITORY_URL_FILE_VERSION="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/${BS_BRANCH_UPDATE_MENU}/vm_menu/bash_scripts/config.sh"
-BS_URL_SCRIPT_UPDATE_MENU="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/${BS_BRANCH_UPDATE_MENU}/update_menu.sh"
 BS_REPOSITORY_URL="https://github.com/EduardRe/DebianLikeBitrixVM/"
 BS_CHECK_UPDATE_MENU_MINUTES=10
 
