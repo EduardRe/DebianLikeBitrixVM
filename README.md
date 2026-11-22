@@ -38,11 +38,11 @@
 ### !!! ВНИМАНИЕ Проект находится на стадии тестирования, поэтому будьте крайне осторожны на рабочих серверах, что-то может не работать или работать не так !!!
 
 ### Установку выполнять только от root пользователя и использовать меню тоже только от root пользователя.
-#### Полная установка окружения. Очень желательно устанавливать на чистый Debian 12 и выше<br>
+#### Полная установка окружения на чистый Debian 12<br>
 Установка используя CURL<br>
-`bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)`.<br>
+`bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/12.x/install_full_environment.sh)`.<br>
 Установка используя WGET<br>
-`bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)`
+`bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/12.x/install_full_environment.sh)`
 
 # Обновление меню
 Если вышла новая версия меню и вы хотите обновится - это также можно сделать одной командой `update_menu` или через запуск скрипта через CURL или WGET, также текущая версия меню будет забекаплена и сохранена в директории `/root/backup_vm_menu/ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ:СЕКУНДЫ` пример `/root/backup_vm_menu/07.07.2024 09:29:45`<br>

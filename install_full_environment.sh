@@ -2,13 +2,13 @@
 set +x
 set -euo pipefail
 # Install full environment
-# MASTER branch
+# 12.x branch
 
 # use curl
-# bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)
+# bash <(curl -sL https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/12.x/install_full_environment.sh)
 
 # use wget
-# bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/master/install_full_environment.sh)
+# bash <(wget -qO- https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/12.x/install_full_environment.sh)
 
 cat > /root/temp_install_full_environment.sh <<\END
 #!/usr/bin/env bash
@@ -29,7 +29,7 @@ generate_password() {
     echo $password
 }
 
-BRANCH="master"
+BRANCH="12.x"
 SETUP_BITRIX_DEBIAN_URL="https://raw.githubusercontent.com/EduardRe/DebianLikeBitrixVM/$BRANCH/repositories/bitrix-gt/custom_from_install_full_environment_bitrix_setup_vanilla.sh"
 REPO_URL="https://github.com/EduardRe/DebianLikeBitrixVM.git"
 
